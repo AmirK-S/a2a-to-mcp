@@ -157,6 +157,6 @@ describe("housekeeping", () => {
     const text = table.describeRetention();
     expect(text).toMatch(/15 minutes/);
     expect(text).toMatch(/memory/i);
-    expect(text).not.toMatch(/[–—]/);
+    expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 });

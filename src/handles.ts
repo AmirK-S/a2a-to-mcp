@@ -189,7 +189,9 @@ export class HandleTable<T> {
 }
 
 function formatDuration(ttlMs: number): string {
-  if (ttlMs >= 60_000) {
+  // Under two minutes, seconds read better and stay plural: a one minute TTL
+  // rendered as "1 minute" is worse than "60 seconds" in a tool description.
+  if (ttlMs >= 120_000) {
     const minutes = round(ttlMs / 60_000);
     return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
   }

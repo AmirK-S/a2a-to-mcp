@@ -181,35 +181,55 @@ describe("lifecycle (lifecycle.ts)", () => {
     expect(second["status"]).toBe("completed");
   });
 
-  it("carries a failed A2A task as failed with a JSON-RPC error object naming the A2A state", async () => {
+  it("carries a failed A2A task as completed with isError, exactly what tools/call returns (D08)", async () => {
     const created = expectResult(await sendWithTasks("fail"));
+    const task = await pollUntil(created["taskId"] as string, isTerminal);
+    expect(task["status"]).toBe("completed");
+    expect(task["error"]).toBeUndefined();
+    const result = task["result"] as Record<string, unknown>;
+    expect(result["isError"]).toBe(true);
+    expect(textOf(result)).toContain("Simulated failure.");
+    const envelope = result["structuredContent"] as Record<string, unknown>;
+    expect(envelope["a2aState"]).toBe("TASK_STATE_FAILED");
+    expect(envelope["status"]).toBe("failed");
+  });
+
+  it("carries a rejected A2A task as completed with isError and the loss in the note", async () => {
+    const created = expectWithoutSync(await sendWithTasks("reject"));
+    const task = await pollUntil(created["taskId"] as string, isTerminal);
+    expect(task["status"]).toBe("completed");
+    const result = task["result"] as Record<string, unknown>;
+    expect(result["isError"]).toBe(true);
+    expect(textOf(result)).toContain("This agent declines the request.");
+    const envelope = result["structuredContent"] as Record<string, unknown>;
+    expect(envelope["a2aState"]).toBe("TASK_STATE_REJECTED");
+    expect(envelope["note"]).toMatch(/rejected/i);
+  });
+
+  it("carries an auth required A2A task as completed with isError, never input_required, with the out-of-band hint", async () => {
+    const created = expectWithoutSync(await sendWithTasks("auth"));
+    const task = await pollUntil(created["taskId"] as string, isTerminal);
+    expect(task["status"]).toBe("completed");
+    expect(task["inputRequests"]).toBeUndefined();
+    const result = task["result"] as Record<string, unknown>;
+    expect(result["isError"]).toBe(true);
+    expect(textOf(result)).toContain("https://example.invalid/authorize");
+    expect((result["structuredContent"] as Record<string, unknown>)["a2aState"]).toBe(
+      "TASK_STATE_AUTH_REQUIRED",
+    );
+  });
+
+  it("reserves the failed status for a bridge-level failure: the agent lost the task", async () => {
+    // The fixture command vanish: opens a task, then forgets it, so that the
+    // next GetTask from the bridge raises TaskNotFoundError (-32001).
+    const created = expectResult(await sendWithTasks("vanish"));
     const task = await pollUntil(created["taskId"] as string, isTerminal);
     expect(task["status"]).toBe("failed");
     const error = task["error"] as { code: number; message: string; data?: Record<string, unknown> };
     expect(typeof error.code).toBe("number");
-    expect(error.message).toContain("Simulated failure.");
-    expect(error.data?.["a2aState"]).toBe("TASK_STATE_FAILED");
+    expect(error.code).not.toBe(-32001);
+    expect(error.data?.["a2aErrorCode"]).toBe(-32001);
     expect(task["result"]).toBeUndefined();
-  });
-
-  it("carries a rejected A2A task as failed and says the loss in statusMessage and data", async () => {
-    const created = expectWithoutSync(await sendWithTasks("reject"));
-    const task = await pollUntil(created["taskId"] as string, isTerminal);
-    expect(task["status"]).toBe("failed");
-    expect(task["statusMessage"]).toMatch(/rejected/i);
-    const error = task["error"] as { message: string; data?: Record<string, unknown> };
-    expect(error.data?.["a2aState"]).toBe("TASK_STATE_REJECTED");
-    expect(error.message).toContain("This agent declines the request.");
-  });
-
-  it("carries an auth required A2A task as failed, never input_required, with the out-of-band hint", async () => {
-    const created = expectWithoutSync(await sendWithTasks("auth"));
-    const task = await pollUntil(created["taskId"] as string, isTerminal);
-    expect(task["status"]).toBe("failed");
-    expect(task["inputRequests"]).toBeUndefined();
-    const error = task["error"] as { message: string; data?: Record<string, unknown> };
-    expect(error.data?.["a2aState"]).toBe("TASK_STATE_AUTH_REQUIRED");
-    expect(error.message).toContain("https://example.invalid/authorize");
   });
 
   it("cancel acknowledges with resultType complete and the task ends cancelled", async () => {

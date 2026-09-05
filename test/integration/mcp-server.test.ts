@@ -68,7 +68,7 @@ describe("server/discover on the 2026-07-28 route", () => {
     expect(instructions).toContain("other");
     expect(instructions).toMatch(/A2A/);
     expect(instructions).toContain("1.0");
-    expect(instructions).not.toMatch(/[–—]/);
+    expect(instructions).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("stamps serverInfo with the package name", async () => {
@@ -101,7 +101,7 @@ describe("tools/list on the 2026-07-28 route", () => {
       expect(tool.inputSchema.properties?.["agent"]?.enum?.sort()).toEqual(["fixture", "other"]);
       expect(tool.inputSchema.required).toContain("agent");
       expect(tool.description).toBeTruthy();
-      expect(tool.description).not.toMatch(/[–—]/);
+      expect(tool.description).not.toMatch(/[\u2013\u2014]/);
     }
   });
 
@@ -157,12 +157,10 @@ describe("mandatory headers and envelope on the 2026-07-28 route", () => {
 });
 
 describe("the 2025-11-25 route on the same endpoint (D01)", () => {
-  it("negotiates the legacy revision through initialize and announces the tasks extension there too", async () => {
+  it("negotiates the legacy revision through initialize", async () => {
     const session = new LegacySession(url);
     const result = expectResult(await session.initialize());
     expect(result["protocolVersion"]).toBe(LEGACY_VERSION);
-    const capabilities = result["capabilities"] as { extensions?: Record<string, unknown> };
-    expect(capabilities.extensions?.[TASKS_EXTENSION]).toBeDefined();
     expect((result["serverInfo"] as { name: string }).name).toBe("a2a-to-mcp");
     await session.close();
   });
@@ -313,12 +311,19 @@ describe("tasks/* reach the bridge on both routes (D06)", () => {
     await session.close();
   });
 
-  it("tasks/get on the legacy route goes through the SDK handler and is answered too", async () => {
+  it("tasks/get on the legacy route answers -32021 whatever the client declared: the extension is 2026-07-28 only (D08)", async () => {
     const session = new LegacySession(url, TASKS_CLIENT_CAPABILITIES);
     await session.initialize();
     const error = expectError(await session.post("tasks/get", { taskId: "tk_doesnotexist" }));
-    expect(error.code).not.toBe(-32601);
-    expect(error.message).toContain("tk_doesnotexist");
+    expect(error.code).toBe(-32021);
+    expect(error.message).toContain(MODERN_VERSION);
+    await session.close();
+  });
+
+  it("never sets Mcp-Session-Id on the legacy initialize response: the bridge holds no session", async () => {
+    const session = new LegacySession(url);
+    const exchange = await session.initialize();
+    expect(exchange.headers.get("mcp-session-id")).toBeNull();
     await session.close();
   });
 });
