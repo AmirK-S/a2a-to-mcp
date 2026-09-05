@@ -90,6 +90,10 @@ export async function postModern(
   if (method === "tools/call" && typeof params["name"] === "string") {
     headers["Mcp-Name"] = params["name"];
   }
+  if (method.startsWith("tasks/") && typeof params["taskId"] === "string") {
+    // The tasks extension puts the taskId in Mcp-Name, as tools/call puts the tool name.
+    headers["Mcp-Name"] = params["taskId"];
+  }
   for (const [name, value] of Object.entries(options.headers ?? {})) {
     if (value === undefined) {
       delete headers[name];

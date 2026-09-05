@@ -261,11 +261,56 @@ describe("tasks/* reach the bridge on both routes (D06)", () => {
     expect(expectError(exchange).code).toBe(-32602);
   });
 
-  it("still requires the tasks extension to be declared by the client", async () => {
-    const exchange = await postModern(url, "tasks/get", { taskId: "tk_x" }, { clientCapabilities: {} });
-    const error = expectError(exchange);
-    expect(error.code).not.toBe(-32601);
-    expect(error.message).toMatch(new RegExp(TASKS_EXTENSION.replace("/", "\\/")));
+  it.each(["tasks/get", "tasks/cancel", "tasks/update"])(
+    "%s without the extension declared answers -32021 with the required capability in data",
+    async (method) => {
+      const params: Record<string, unknown> =
+        method === "tasks/update" ? { taskId: "tk_x", inputResponses: {} } : { taskId: "tk_x" };
+      const exchange = await postModern(url, method, params, { clientCapabilities: {} });
+      const error = expectError(exchange);
+      expect(error.code).toBe(-32021);
+      expect(error.message).toContain(TASKS_EXTENSION);
+      expect(error.data).toMatchObject({
+        requiredCapabilities: { extensions: { [TASKS_EXTENSION]: {} } },
+      });
+    },
+  );
+
+  it("answers -32602 for an unknown or expired task handle, as the extension requires", async () => {
+    const exchange = await postModern(
+      url,
+      "tasks/get",
+      { taskId: "tk_doesnotexist" },
+      { clientCapabilities: TASKS_CLIENT_CAPABILITIES },
+    );
+    expect(expectError(exchange).code).toBe(-32602);
+  });
+
+  it("requires Mcp-Name to carry the taskId on tasks/* and rejects a disagreement with -32020", async () => {
+    const mismatch = await postModern(
+      url,
+      "tasks/get",
+      { taskId: "tk_doesnotexist" },
+      { clientCapabilities: TASKS_CLIENT_CAPABILITIES, headers: { "Mcp-Name": "tk_other" } },
+    );
+    expect(mismatch.status).toBe(400);
+    expect(expectError(mismatch).code).toBe(-32020);
+    const missing = await postModern(
+      url,
+      "tasks/get",
+      { taskId: "tk_doesnotexist" },
+      { clientCapabilities: TASKS_CLIENT_CAPABILITIES, headers: { "Mcp-Name": undefined } },
+    );
+    expect(missing.status).toBe(400);
+    expect(expectError(missing).code).toBe(-32020);
+  });
+
+  it("legacy route without the extension declared answers -32021 too", async () => {
+    const session = new LegacySession(url, {});
+    await session.initialize();
+    const error = expectError(await session.post("tasks/get", { taskId: "tk_x" }));
+    expect(error.code).toBe(-32021);
+    await session.close();
   });
 
   it("tasks/get on the legacy route goes through the SDK handler and is answered too", async () => {
