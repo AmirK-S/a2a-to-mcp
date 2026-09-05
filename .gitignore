@@ -7,3 +7,4 @@ conformance-results/**/*.log
 *.pem
 *.key
 .DS_Store
+.cache/

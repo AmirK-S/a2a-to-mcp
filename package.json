@@ -37,6 +37,7 @@
     "test": "vitest run",
     "test:unit": "vitest run test/unit",
     "test:integration": "vitest run test/integration",
+    "test:helloworld": "vitest run test/integration/helloworld.test.ts",
     "start": "node dist/cli.js"
   },
   "keywords": [
