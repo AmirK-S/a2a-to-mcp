@@ -22,7 +22,7 @@
     }
   },
   "bin": {
-    "a2a-to-mcp": "./dist/cli.js"
+    "a2a-to-mcp": "dist/cli.js"
   },
   "files": [
     "dist",
