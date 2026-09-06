@@ -19,6 +19,7 @@ import { A2A_VERSION, AgentCardResolver, DEFAULT_CARD_TTL_MS } from "./agent-car
 import { DEFAULT_HANDLE_TTL_MS, DEFAULT_HOST, DEFAULT_PORT } from "./config.js";
 import { BridgeHandles } from "./envelope.js";
 import { addressOf, createHttpServer, createRouter } from "./http.js";
+import { MrtrService, createBridgeRequestStateCodec } from "./mrtr.js";
 import { TASKS_EXTENSION_ID, TASKS_METHODS, TasksService } from "./tasks/handlers.js";
 import { registerBridgeTools } from "./tools.js";
 
@@ -77,15 +78,24 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
   const handles = new BridgeHandles({ ttlMs: handleTtlMs });
   const serverInfo = { name: manifest.name, version: manifest.version };
   const tasks = new TasksService({ handles, agents, ttlMs: handleTtlMs, serverInfo });
+  // One codec for the whole process: the 2026-07-28 route serves every request
+  // from a fresh server instance, so the key cannot live on the instance, and
+  // the state must outlive it exactly as long as the handle it names.
+  const requestState = createBridgeRequestStateCodec(handleTtlMs);
+  const mrtr = new MrtrService({ handles, agents, requestState });
 
   const handler = createMcpHandler(
     () => {
       const mcp = new McpServer(serverInfo, {
         instructions: buildInstructions(cards),
         cacheHints: { "tools/list": { ttlMs: TOOLS_LIST_TTL_MS, cacheScope: "private" } },
+        // The seam runs this before the handler on every round that echoes a
+        // requestState, and answers -32602 when the HMAC or the TTL fails, so
+        // a tampered state never reaches a2a_send_message.
+        requestState: { verify: requestState.verify },
       });
       mcp.server.registerCapabilities({ extensions: { [TASKS_EXTENSION_ID]: {} } });
-      registerBridgeTools(mcp, { cards, agents, handles, tasks });
+      registerBridgeTools(mcp, { cards, agents, handles, tasks, mrtr });
       registerTasksHandlers(mcp, tasks);
       return mcp;
     },

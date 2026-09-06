@@ -14,7 +14,11 @@
  * -32602, because that is a client bug and not an agent outcome.
  */
 import { z } from "zod";
-import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
+import type {
+  CallToolResult,
+  InputRequiredResult,
+  McpServer,
+} from "@modelcontextprotocol/server";
 import {
   CLIENT_CAPABILITIES_META_KEY,
   PROTOCOL_VERSION_META_KEY,
@@ -30,8 +34,9 @@ import {
   type AgentCardResolver,
   type ResolvedAgent,
 } from "./agent-card.js";
-import { resultEnvelope, taskEnvelope, type BridgeHandles } from "./envelope.js";
+import { isTask, resultEnvelope, taskEnvelope, type BridgeHandles } from "./envelope.js";
 import { HandleExpiredError, UnknownHandleError } from "./handles.js";
+import { MrtrService, readRequestState, type RequestStatePayload } from "./mrtr.js";
 import { A2A_META_KEY } from "./parts.js";
 import {
   MODERN_REVISION,
@@ -52,9 +57,10 @@ export interface ToolDeps {
   agents: A2AClientPool;
   handles: BridgeHandles;
   tasks: TasksService;
+  mrtr: MrtrService;
 }
 
-/** What the per-request envelope of one tools/call says about the client. */
+/** What one tools/call says about the client and about its round. */
 export interface CallContext {
   /**
    * True when the client declared the tasks extension on the modern route.
@@ -63,6 +69,26 @@ export interface CallContext {
    * (DECISIONS.md D08).
    */
   tasksExtension: boolean;
+  /**
+   * True when the client declared elicitation on the modern route. Read from
+   * the same envelope, for the same reason: the legacy leg is served
+   * statelessly by instances that never saw an initialize, so the capabilities
+   * of that handshake are not recoverable there.
+   */
+  elicitation: boolean;
+  /** Input responses of a retried round, lifted by the SDK. Untrusted. */
+  inputResponses: Record<string, unknown> | undefined;
+  /** The requestState the seam verified and decoded, when the round had one. */
+  requestState: RequestStatePayload | undefined;
+}
+
+/** The handler context fields the bridge reads out of one tools/call. */
+export interface HandlerContext {
+  mcpReq: {
+    envelope?: unknown;
+    inputResponses?: Record<string, unknown> | undefined;
+    requestState: <T>() => T | undefined;
+  };
 }
 
 interface BridgeTool {
@@ -77,7 +103,7 @@ interface BridgeTool {
     args: Record<string, unknown>,
     deps: ToolDeps,
     context: CallContext,
-  ) => Promise<CallToolResult>;
+  ) => Promise<CallToolResult | InputRequiredResult>;
 }
 
 /** Registers the four tools and takes tools/call over from the SDK. */
@@ -111,7 +137,7 @@ export function registerBridgeTools(mcp: McpServer, deps: ToolDeps): void {
       );
     }
     try {
-      return await tool.run(parsed.data, deps, readCallContext(ctx.mcpReq.envelope));
+      return await tool.run(parsed.data, deps, readCallContext(ctx));
     } catch (error) {
       return toolError(error);
     }
@@ -220,12 +246,19 @@ async function sendMessage(
   args: Record<string, unknown>,
   deps: ToolDeps,
   context: CallContext,
-): Promise<CallToolResult> {
+): Promise<CallToolResult | InputRequiredResult> {
   const alias = String(args["agent"]);
   // Validates the alias without a fetch: a handle is checked before the
   // network, so an unknown handle is reported as such even when the agent
   // card happens to be unreachable.
   deps.cards.cardUrlOf(alias);
+
+  if (context.requestState !== undefined) {
+    // A later round of a multi round trip: the arguments are the ones the
+    // first round was called with, and what matters is the answer the client
+    // collected and the task the verified state names.
+    return deps.mrtr.resume(alias, context.requestState, context.inputResponses);
+  }
 
   let contextId: string | undefined;
   let taskId: string | undefined;
@@ -262,25 +295,48 @@ async function sendMessage(
   }
 
   const result = await deps.agents.sendMessage(alias, input);
+  if (context.elicitation && isTask(result) && MrtrService.isWaitingForInput(result)) {
+    // The client cannot hold an MCP task but can answer a question, so the
+    // interruption becomes an elicitation the client fulfils and replays,
+    // rather than an envelope the model has to notice on its own.
+    return deps.mrtr.ask(alias, result);
+  }
   return resultEnvelope(deps.handles, alias, result) as CallToolResult;
 }
 
 /**
- * Reads the tasks declaration out of the per-request envelope of a tools/call.
+ * Reads what one tools/call declares and what it carries back.
  *
  * The SDK lifts the reserved io.modelcontextprotocol/* keys out of the params
- * a handler sees and hands them over as ctx.mcpReq.envelope. Both the revision
- * and the declaration are checked: the envelope exists on the 2026-07-28 route
- * only, and the extension is served there only, so a legacy request can never
- * open an MCP task however it words its params (DECISIONS.md D08).
+ * a handler sees and hands them over as ctx.mcpReq.envelope, and it lifts the
+ * multi round trip fields out the same way. Both the revision and the
+ * declarations are checked: the envelope exists on the 2026-07-28 route only,
+ * and neither the extension nor the multi round trip is served elsewhere, so a
+ * legacy request can never open an MCP task nor be handed an elicitation
+ * however it words its params (DECISIONS.md D08).
+ *
+ * The requestState has already passed the seam verify hook by the time a
+ * handler runs, so what the accessor returns here is the decoded payload of a
+ * state this bridge minted, not raw client input.
  */
-export function readCallContext(envelope: unknown): CallContext {
-  const keys = readObject(envelope);
+export function readCallContext(ctx: HandlerContext): CallContext {
+  const keys = readObject(ctx.mcpReq.envelope);
   if (keys === undefined || keys[PROTOCOL_VERSION_META_KEY] !== MODERN_REVISION) {
-    return { tasksExtension: false };
+    return {
+      tasksExtension: false,
+      elicitation: false,
+      inputResponses: undefined,
+      requestState: undefined,
+    };
   }
-  const extensions = readObject(readObject(keys[CLIENT_CAPABILITIES_META_KEY])?.["extensions"]);
-  return { tasksExtension: extensions?.[TASKS_EXTENSION_ID] !== undefined };
+  const capabilities = readObject(keys[CLIENT_CAPABILITIES_META_KEY]);
+  const extensions = readObject(capabilities?.["extensions"]);
+  return {
+    tasksExtension: extensions?.[TASKS_EXTENSION_ID] !== undefined,
+    elicitation: capabilities?.["elicitation"] !== undefined,
+    inputResponses: ctx.mcpReq.inputResponses,
+    requestState: readRequestState(ctx.mcpReq.requestState()),
+  };
 }
 
 function readObject(value: unknown): Record<string, unknown> | undefined {
