@@ -12,6 +12,7 @@ First release. Targets A2A v1.0.1 and MCP 2026-07-28, with the 2025-11-25 route 
 
 - `server/discover` announcing `2026-07-28` and the `io.modelcontextprotocol/tasks` extension; `initialize` for `2025-11-25` clients.
 - Four tools: `a2a_discover`, `a2a_send_message`, `a2a_get_task`, `a2a_cancel_task`, with opaque task and context handles that expire.
+- `agent` is optional when exactly one agent is configured: the tool schema carries that alias as its default. With two or more it stays required.
 - Tasks extension on the modern route: `CreateTaskResult` from `a2a_send_message`, `tasks/get`, `tasks/update`, `tasks/cancel`, fed by `SendStreamingMessage` or `GetTask`.
 - Multi-round-trip for clients that declare `elicitation`: an A2A `INPUT_REQUIRED` becomes one form elicitation and the replay answers the same A2A task.
 - Translation of the four part kinds, of artifacts, of the nine task states and of the nine typed A2A errors, with every loss reported.

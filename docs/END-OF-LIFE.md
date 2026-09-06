@@ -1,5 +1,7 @@
 # End of life note
 
+Last checked: 2026-09-06, against `@modelcontextprotocol/server` 2.0.0, `@a2a-js/sdk` 1.1.0 and `@modelcontextprotocol/conformance` 0.2.0-alpha.11.
+
 This bridge targets two moving protocols and pins both. This note says, by name, what breaks at the next revision of each, so that a reader in six months knows whether the package still applies before running it.
 
 ## Pinned surface

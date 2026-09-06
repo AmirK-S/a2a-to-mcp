@@ -45,6 +45,8 @@ Client configuration, the `.mcp.json` block, passed as `--mcp-config`:
 }
 ```
 
+This trace was captured with `"type": "streamable-http"`, which Claude Code still accepts. `"type": "http"` is the spelling the bridge prints on startup and the one the README shows.
+
 The exact command:
 
 ```sh
@@ -132,7 +134,7 @@ What this exchange proves. The very first byte on the wire is
 `server/discover`, not `initialize`: the whole trace contains zero occurrences
 of the string `initialize` and zero occurrences of the string `session`, in
 headers as well as in bodies. There is no `Mcp-Session-Id` in this response or
-in any other. The client states its capabilities inside the per request
+in any other. The client states its capabilities inside the per-request
 envelope `_meta`, and those capabilities are exactly `{roots: {listChanged:
 true}, elicitation: {}}`: Claude Code can be asked a question, and cannot be
 handed an MCP task. The bridge answers `resultType: "complete"` and advertises
@@ -421,7 +423,7 @@ Response, HTTP 200:
 This is the exchange the whole design turns on. The A2A task parked in
 `INPUT_REQUIRED` did not come back as a result the model has to notice: it came
 back as `resultType: "input_required"` with one form elicitation, because the
-client declared `elicitation` in exchange 1. The free text question of A2A
+client declared `elicitation` in exchange 1. The free-text question of A2A
 became a single required string field, which is the only schema A2A can justify.
 The `requestState` is HMAC sealed and readable: its payload decodes to
 `{"p":{"alias":"fixture","taskHandle":"tk_Ao7s4lhHScvsI3740Dd-eg"},"exp":1788667389}`,
@@ -473,7 +475,7 @@ Response, HTTP 200:
 }
 ```
 
-The multi round trip worked exactly as designed, and the answer was a refusal.
+The multi-round-trip worked exactly as designed, and the answer was a refusal.
 Claude Code replayed the same `tools/call`, with the same `claudecode/toolUseId`
 and the sealed `requestState` handed straight back, carrying
 `inputResponses: {"answer": {"action": "cancel"}}`. It did not ask the model
@@ -555,10 +557,11 @@ tool offers, the `taskHandle` path, and sent "blue" to the task it had just
 cancelled. This is the failure branch, and it is the most instructive exchange
 in the trace. The typed A2A error `-32004 UNSUPPORTED_OPERATION` is reported as
 a tool execution error, `isError: true` with the code in `structuredContent`,
-and the HTTP status stays 200 with a well formed JSON-RPC `result`. The bridge
+and the HTTP status stays 200 with a well-formed JSON-RPC `result`. The bridge
 did not re-emit `-32004` as a JSON-RPC error code, which is the rule it states:
-the MCP range `-32000` to `-32019` is implementation defined and the two
-vocabularies would collide.
+JSON-RPC reserves `-32000` to `-32099` for server-defined errors, MCP already
+uses `-32020`, `-32021` and `-32022` in that band, and an A2A code replayed
+there would claim an MCP meaning it does not have.
 
 Note the leak this exchange does show: the agent phrases its own error with its
 A2A task id, `01901d79-...`, and the bridge passes the agent text through
@@ -568,7 +571,7 @@ unedited. Handles hide the bridge mapping, not what an agent chooses to say.
 
 Exchange 15 cancels `listen:1` and gets HTTP 202 with an empty body. Exchange 16
 opens `listen:2`, which is closed by the client when the process exits, and is
-recorded as aborted. Both carry the same per request envelope as everything
+recorded as aborted. Both carry the same per-request envelope as everything
 else.
 
 ## Appendix, exchanges 17 and 18: the accepted answer
@@ -577,7 +580,7 @@ Claude Code in headless mode can only cancel an elicitation. To show the other
 branch of the same code path on the same running bridge, a minimal client of
 about forty lines, no SDK, declaring `clientCapabilities: {"elicitation": {}}`
 and nothing else, made the same two calls and answered. It is in
-`accept-client.mjs` next to this trace.
+[`docs/demo/accept-client.mjs`](demo/accept-client.mjs).
 
 Exchange 17, `a2a_send_message` with `{"agent": "fixture", "text": "ask: colour"}`,
 answered with the same `resultType: "input_required"`, the same
@@ -686,6 +689,7 @@ of the mechanism and also its blind spot in a headless run.
   and the bridge only. What the bridge said to the agent over JSON-RPC on port
   41241 is not in this file.
 
-Raw material for all of the above: `trace.jsonl`, one JSON object per exchange
-with full headers and bodies, the Claude Code JSON output, the proxy and the
-appendix client.
+Raw material for all of the above is in [`docs/demo/`](demo/):
+[`trace.jsonl`](demo/trace.jsonl), one JSON object per exchange with full headers
+and bodies, the Claude Code JSON output, the proxy and the appendix client, each
+named in [`docs/demo/README.md`](demo/README.md).
