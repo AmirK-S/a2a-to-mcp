@@ -4,6 +4,14 @@ Last checked: 2026-09-06, against `@modelcontextprotocol/server` 2.0.0, `@a2a-js
 
 This bridge targets two moving protocols and pins both. This note says, by name, what breaks at the next revision of each, so that a reader in six months knows whether the package still applies before running it.
 
+## Signals to watch, in order
+
+1. A2A v1.1: issue 1942 of `a2aproject/A2A` and the release page of `a2aproject/A2A`. The first signal, because it can change the agent card and the task lifecycle at once.
+2. `@modelcontextprotocol/server` releases fixing issues 2598 and 2637: two workarounds become removable.
+3. A new MCP revision on `modelcontextprotocol.io`: `server/discover`, the `_meta` envelope and `resultType` are the fields to check first.
+4. The tasks extension schema in `modelcontextprotocol/ext-tasks`.
+5. A stable `0.2.0` of `@modelcontextprotocol/conformance`: rerun `npm run conformance`.
+
 ## Pinned surface
 
 | Surface | Pinned to | Where it is read |

@@ -175,6 +175,10 @@ npm run conformance      # official MCP suite, both revisions, baseline applied
 
 The fixture agent in `fixtures/agent` is a deterministic A2A v1.0 agent without a model: its commands drive every task state an agent can deliberately report, the two-turn input-required cycle, cancellation, the four part kinds and the nine typed errors. `npx tsx fixtures/agent/cli.ts --port 41241` runs it standalone.
 
+## Maintenance and issues
+
+Issues and pull requests get an answer within seven days. Bug reports against the pinned versions are handled; requests for new features are read and answered but not promised. The extended scope that may follow, one tool per A2A skill, `subscriptions/listen` with task notifications, A2A authentication schemes from the configuration, and the reverse direction, is listed here so that nobody expects it silently.
+
 ## End of life
 
 What breaks at the next revision of either protocol is written in [`docs/END-OF-LIFE.md`](docs/END-OF-LIFE.md). Versions are pinned exactly on purpose.
