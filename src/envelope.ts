@@ -12,11 +12,18 @@
  * only knows MCP reads status; a client that knows A2A never loses the state
  * the agent actually reported.
  */
-import { TaskState, taskStateToJSON, type Message, type Part, type Task } from "@a2a-js/sdk";
+import {
+  Role,
+  TaskState,
+  taskStateToJSON,
+  type Message,
+  type Part,
+  type Task,
+} from "@a2a-js/sdk";
 import type { ContentBlock } from "@modelcontextprotocol/server";
 
 import { HandleTable } from "./handles.js";
-import { toMcpStatus, type McpTaskStatus } from "./lifecycle.js";
+import { isTerminalA2AState, toMcpStatus, type McpTaskStatus } from "./lifecycle.js";
 import { artifactToContent, messageToContent, structuredContentFromParts } from "./parts.js";
 import { TaskStore } from "./tasks/store.js";
 
@@ -35,6 +42,12 @@ const ERROR_STATES: readonly TaskState[] = [
 export interface ContextRecord {
   alias: string;
   contextId: string;
+}
+
+/** One past turn of a task, flattened to the text a model can read. */
+export interface HistoryTurn {
+  role: "user" | "agent";
+  text: string;
 }
 
 /** One artifact, named but not inlined, so a client can ask for it by id. */
@@ -57,6 +70,8 @@ export interface BridgeEnvelope {
   artifacts?: ArtifactRef[];
   /** The single data part of the artifacts, when there is exactly one. */
   data?: Record<string, unknown>;
+  /** Past turns of the task, present only when the caller asked for them. */
+  history?: HistoryTurn[];
 }
 
 /** The shape the tools return to the MCP seam. */
@@ -122,8 +137,23 @@ export function messageEnvelope(
   };
 }
 
+/** How much of a Task the envelope carries beyond its current state. */
+export interface TaskEnvelopeOptions {
+  /**
+   * Adds the task history to the envelope. Only a2a_get_task asks for it: the
+   * envelope a2a_send_message returns is also the result a completed MCP task
+   * hands back, and that one must stay exactly what tools/call returned.
+   */
+  includeHistory?: boolean;
+}
+
 /** Builds the tool result for a Task, whatever state it is in. */
-export function taskEnvelope(handles: BridgeHandles, alias: string, task: Task): EnvelopeResult {
+export function taskEnvelope(
+  handles: BridgeHandles,
+  alias: string,
+  task: Task,
+  options: TaskEnvelopeOptions = {},
+): EnvelopeResult {
   const state = task.status?.state ?? TaskState.TASK_STATE_UNSPECIFIED;
   const mapping = toMcpStatus(state);
   const artifacts = task.artifacts ?? [];
@@ -144,12 +174,13 @@ export function taskEnvelope(handles: BridgeHandles, alias: string, task: Task):
   const envelope: BridgeEnvelope = {
     kind: "task",
     contextHandle: handles.mintContext(alias, task.contextId),
-    taskHandle: handles.tasks.mintFor(alias, task.id, task.contextId),
+    taskHandle: handles.tasks.mintFor(alias, task, isTerminalA2AState(state)),
     a2aState: taskStateToJSON(state),
     status: mapping.status,
     ...(mapping.lossy && mapping.note !== undefined ? { note: mapping.note } : {}),
     ...(refs.length > 0 ? { artifacts: refs } : {}),
     ...(data === undefined ? {} : { data }),
+    ...(options.includeHistory === true ? { history: historyOf(task) } : {}),
   };
 
   return {
@@ -168,4 +199,22 @@ export function resultEnvelope(
   return isTask(result)
     ? taskEnvelope(handles, alias, result)
     : messageEnvelope(handles, alias, result);
+}
+
+/** Flattens the A2A history of a task into role and text turns. */
+export function historyOf(task: Task): HistoryTurn[] {
+  return (task.history ?? []).map((message) => ({
+    // Role is a numeric ts-proto enum: anything that is not the agent is
+    // reported as the user side of the conversation.
+    role: message.role === Role.ROLE_AGENT ? ("agent" as const) : ("user" as const),
+    text: textOfMessage(message),
+  }));
+}
+
+/** The text parts of a message, joined, for a history turn. */
+function textOfMessage(message: Message): string {
+  return message.parts
+    .filter((part) => part.content?.$case === "text")
+    .map((part) => (part.content?.$case === "text" ? part.content.value : ""))
+    .join("\n");
 }

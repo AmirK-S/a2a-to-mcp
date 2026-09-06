@@ -3,20 +3,34 @@
  *
  * An MCP task id is a bridge handle: the opaque tk_ token minted when
  * a2a_send_message produced an A2A task. The store maps it back to the agent
- * alias and to the A2A identifiers, and to nothing else: the authoritative
- * state always comes from a fresh GetTask upstream, so the bridge never has to
- * keep an A2A lifecycle in sync with an MCP one.
+ * alias, to the A2A identifiers, and to the last A2A Task the bridge saw.
+ *
+ * That snapshot is what a stream writes into: an agent that streams feeds the
+ * record event by event, and the bridge only falls back on a fresh GetTask
+ * when no stream is alive and the task is not terminal yet. A terminal record
+ * is frozen, so two tasks/get on a finished task answer identically.
  *
  * Minting is idempotent on alias plus A2A task id, so a client that sends
  * three messages to the same task sees one handle, not three.
  */
+import type { Task } from "@a2a-js/sdk";
+
 import { HandleExpiredError, HandleTable, UnknownHandleError } from "../handles.js";
 
 /** Prefix of every MCP task handle minted by the bridge. */
 export const TASK_HANDLE_PREFIX = "tk";
 
+/** A failure of the bridge itself, reported as an MCP failed task (D08). */
+export interface BridgeTaskError {
+  code: number;
+  message: string;
+  data: Record<string, unknown>;
+}
+
 /** What the bridge remembers about one MCP task. */
 export interface TaskRecord {
+  /** The tk_ handle this record is filed under. */
+  handle: string;
   /** Alias of the A2A agent running the task. */
   alias: string;
   /** Identifier of the task on the A2A side. */
@@ -27,6 +41,16 @@ export interface TaskRecord {
   createdAt: string;
   /** When the bridge last refreshed the record, ISO 8601. */
   lastUpdatedAt: string;
+  /** The last A2A Task the bridge saw, artifacts accumulated. */
+  snapshot: Task;
+  /** True once the snapshot reached one of the four terminal A2A states. */
+  terminal: boolean;
+  /** True while a SendStreamingMessage stream is still feeding the snapshot. */
+  streaming: boolean;
+  /** Set when the bridge itself could not carry the task any further. */
+  bridgeError?: BridgeTaskError;
+  /** The terminal tool result, built once and handed back unchanged. */
+  frozenResult?: Record<string, unknown>;
 }
 
 export interface TaskStoreOptions {
@@ -55,9 +79,13 @@ export class TaskStore {
    * Mints the handle of an A2A task, or refreshes the one already minted for
    * it. The idempotency key is the alias and the A2A task id together, because
    * two agents may well use the same task id.
+   *
+   * A record that already reached a terminal state keeps the snapshot it
+   * settled on: the extension requires tasks/get to answer identically once
+   * the task is finished.
    */
-  mintFor(alias: string, a2aTaskId: string, contextId: string): string {
-    const key = `${alias}:${a2aTaskId}`;
+  mintFor(alias: string, task: Task, terminal = false): string {
+    const key = `${alias}:${task.id}`;
     const stamp = this.#stamp();
     const known = this.#byKey.get(key);
     if (known !== undefined) {
@@ -65,20 +93,29 @@ export class TaskStore {
       if (record !== undefined) {
         // The stored object is handed back by reference, so the record is
         // updated in place and the creation date survives.
-        record.contextId = contextId;
+        record.contextId = task.contextId;
         record.lastUpdatedAt = stamp;
+        if (!record.terminal) {
+          record.snapshot = task;
+          record.terminal = terminal;
+        }
         this.#table.touch(known);
         return known;
       }
       this.#byKey.delete(key);
     }
     const handle = this.#table.mint({
+      handle: "",
       alias,
-      a2aTaskId,
-      contextId,
+      a2aTaskId: task.id,
+      contextId: task.contextId,
       createdAt: stamp,
       lastUpdatedAt: stamp,
+      snapshot: task,
+      terminal,
+      streaming: false,
     });
+    this.#table.resolve(handle).handle = handle;
     this.#byKey.set(key, handle);
     return handle;
   }
@@ -91,6 +128,11 @@ export class TaskStore {
   /** Restarts the lifetime of a handle. */
   touch(handle: string): void {
     this.#table.touch(handle);
+  }
+
+  /** The current time in the ISO 8601 spelling the records use. */
+  stamp(): string {
+    return this.#stamp();
   }
 
   /** Stamps a task as just refreshed and restarts its lifetime. */

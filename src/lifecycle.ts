@@ -112,6 +112,35 @@ export function toMcpStatus(state: TaskState): McpStatusMapping {
 }
 
 /**
+ * The MCP task status the tasks extension reports for one A2A state.
+ *
+ * Deliberately different from toMcpStatus, which describes the A2A task
+ * inside the result envelope. On the extension wire an A2A failure is a
+ * completed MCP task whose result carries isError, because the underlying
+ * tools/call did produce a result; the failed status is reserved for a
+ * failure of the bridge itself (DECISIONS.md D08).
+ */
+export function toTaskExtensionStatus(state: TaskState): McpTaskStatus {
+  switch (state) {
+    case TaskState.TASK_STATE_SUBMITTED:
+    case TaskState.TASK_STATE_WORKING:
+      return "working";
+    case TaskState.TASK_STATE_INPUT_REQUIRED:
+      return "input_required";
+    case TaskState.TASK_STATE_CANCELED:
+      return "cancelled";
+    case TaskState.TASK_STATE_COMPLETED:
+    case TaskState.TASK_STATE_FAILED:
+    case TaskState.TASK_STATE_REJECTED:
+    case TaskState.TASK_STATE_AUTH_REQUIRED:
+    case TaskState.TASK_STATE_UNSPECIFIED:
+      return "completed";
+    default:
+      throw new UnknownTaskStateError(state);
+  }
+}
+
+/**
  * Maps an MCP task status back onto the A2A state the bridge sends. The three
  * lossy states have no inverse: they collapse onto working or failed.
  */

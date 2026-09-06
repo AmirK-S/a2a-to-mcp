@@ -15,7 +15,12 @@
  */
 import { z } from "zod";
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
-import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
+import {
+  CLIENT_CAPABILITIES_META_KEY,
+  PROTOCOL_VERSION_META_KEY,
+  ProtocolError,
+  ProtocolErrorCode,
+} from "@modelcontextprotocol/server";
 
 import { A2ABridgeError, type A2AClientPool } from "./a2a-client.js";
 import {
@@ -28,6 +33,11 @@ import {
 import { resultEnvelope, taskEnvelope, type BridgeHandles } from "./envelope.js";
 import { HandleExpiredError, UnknownHandleError } from "./handles.js";
 import { A2A_META_KEY } from "./parts.js";
+import {
+  MODERN_REVISION,
+  TASKS_EXTENSION_ID,
+  type TasksService,
+} from "./tasks/handlers.js";
 
 /** The four tool names, in the order they are registered. */
 export const TOOL_NAMES = [
@@ -41,6 +51,18 @@ export interface ToolDeps {
   cards: AgentCardResolver;
   agents: A2AClientPool;
   handles: BridgeHandles;
+  tasks: TasksService;
+}
+
+/** What the per-request envelope of one tools/call says about the client. */
+export interface CallContext {
+  /**
+   * True when the client declared the tasks extension on the modern route.
+   * The declaration is read from the per-request envelope and nowhere else:
+   * the bridge holds no session, so a legacy client never reaches this
+   * (DECISIONS.md D08).
+   */
+  tasksExtension: boolean;
 }
 
 interface BridgeTool {
@@ -51,7 +73,11 @@ interface BridgeTool {
   inputSchema: z.ZodType<Record<string, unknown>>;
   /** Schema used to validate a call: agent is any string. */
   argsSchema: z.ZodType<Record<string, unknown>>;
-  run: (args: Record<string, unknown>, deps: ToolDeps) => Promise<CallToolResult>;
+  run: (
+    args: Record<string, unknown>,
+    deps: ToolDeps,
+    context: CallContext,
+  ) => Promise<CallToolResult>;
 }
 
 /** Registers the four tools and takes tools/call over from the SDK. */
@@ -71,7 +97,7 @@ export function registerBridgeTools(mcp: McpServer, deps: ToolDeps): void {
   // McpServer wraps input validation in a try/catch and turns it into an
   // isError result. The 2026-07-28 revision wants a malformed call to be a
   // -32602 protocol error instead, so tools/call is served here.
-  mcp.server.setRequestHandler("tools/call", async (request) => {
+  mcp.server.setRequestHandler("tools/call", async (request, ctx) => {
     const name = request.params.name;
     const tool = byName.get(name);
     if (tool === undefined) {
@@ -85,7 +111,7 @@ export function registerBridgeTools(mcp: McpServer, deps: ToolDeps): void {
       );
     }
     try {
-      return await tool.run(parsed.data, deps);
+      return await tool.run(parsed.data, deps, readCallContext(ctx.mcpReq.envelope));
     } catch (error) {
       return toolError(error);
     }
@@ -138,7 +164,7 @@ function buildTools(deps: ToolDeps): BridgeTool[] {
         contextHandle: z.string().optional(),
         taskHandle: z.string().optional(),
       }),
-      run: async (args, dependencies) => sendMessage(args, dependencies),
+      run: async (args, dependencies, context) => sendMessage(args, dependencies, context),
     },
     {
       name: "a2a_get_task",
@@ -193,6 +219,7 @@ async function discover(alias: string, deps: ToolDeps): Promise<CallToolResult> 
 async function sendMessage(
   args: Record<string, unknown>,
   deps: ToolDeps,
+  context: CallContext,
 ): Promise<CallToolResult> {
   const alias = String(args["agent"]);
   // Validates the alias without a fetch: a handle is checked before the
@@ -218,12 +245,48 @@ async function sendMessage(
     contextId = record.contextId;
   }
 
-  const result = await deps.agents.sendMessage(alias, {
+  const input = {
     text: String(args["text"]),
     ...(contextId === undefined ? {} : { contextId }),
     ...(taskId === undefined ? {} : { taskId }),
-  });
+  };
+
+  if (context.tasksExtension) {
+    // The client can hold an MCP task, so an A2A task becomes one instead of
+    // being waited out inside the tool call.
+    const outcome = await deps.tasks.createTask(alias, input);
+    if (outcome.kind === "task") {
+      return outcome.result as unknown as CallToolResult;
+    }
+    return resultEnvelope(deps.handles, alias, outcome.result) as CallToolResult;
+  }
+
+  const result = await deps.agents.sendMessage(alias, input);
   return resultEnvelope(deps.handles, alias, result) as CallToolResult;
+}
+
+/**
+ * Reads the tasks declaration out of the per-request envelope of a tools/call.
+ *
+ * The SDK lifts the reserved io.modelcontextprotocol/* keys out of the params
+ * a handler sees and hands them over as ctx.mcpReq.envelope. Both the revision
+ * and the declaration are checked: the envelope exists on the 2026-07-28 route
+ * only, and the extension is served there only, so a legacy request can never
+ * open an MCP task however it words its params (DECISIONS.md D08).
+ */
+export function readCallContext(envelope: unknown): CallContext {
+  const keys = readObject(envelope);
+  if (keys === undefined || keys[PROTOCOL_VERSION_META_KEY] !== MODERN_REVISION) {
+    return { tasksExtension: false };
+  }
+  const extensions = readObject(readObject(keys[CLIENT_CAPABILITIES_META_KEY])?.["extensions"]);
+  return { tasksExtension: extensions?.[TASKS_EXTENSION_ID] !== undefined };
+}
+
+function readObject(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 async function getTask(args: Record<string, unknown>, deps: ToolDeps): Promise<CallToolResult> {
@@ -239,7 +302,7 @@ async function getTask(args: Record<string, unknown>, deps: ToolDeps): Promise<C
     typeof historyLength === "number" ? historyLength : undefined,
   );
   deps.handles.tasks.markUpdated(handle);
-  return taskEnvelope(deps.handles, alias, task) as CallToolResult;
+  return taskEnvelope(deps.handles, alias, task, { includeHistory: true }) as CallToolResult;
 }
 
 async function cancelTask(args: Record<string, unknown>, deps: ToolDeps): Promise<CallToolResult> {

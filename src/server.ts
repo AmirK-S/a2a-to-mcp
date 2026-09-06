@@ -75,8 +75,8 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
   });
   const agents = new A2AClientPool(cards);
   const handles = new BridgeHandles({ ttlMs: handleTtlMs });
-  const tasks = new TasksService({ handles, agents, ttlMs: handleTtlMs });
   const serverInfo = { name: manifest.name, version: manifest.version };
+  const tasks = new TasksService({ handles, agents, ttlMs: handleTtlMs, serverInfo });
 
   const handler = createMcpHandler(
     () => {
@@ -85,7 +85,7 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
         cacheHints: { "tools/list": { ttlMs: TOOLS_LIST_TTL_MS, cacheScope: "private" } },
       });
       mcp.server.registerCapabilities({ extensions: { [TASKS_EXTENSION_ID]: {} } });
-      registerBridgeTools(mcp, { cards, agents, handles });
+      registerBridgeTools(mcp, { cards, agents, handles, tasks });
       registerTasksHandlers(mcp, tasks);
       return mcp;
     },
