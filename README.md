@@ -19,7 +19,7 @@ Node 20 or later. Apache-2.0.
 npm install -g a2a-to-mcp
 ```
 
-Until the first release is on npm, run it from the repository:
+Or run it from the repository:
 
 ```sh
 git clone https://github.com/AmirK-S/a2a-to-mcp.git && cd a2a-to-mcp && npm ci && npm run build
