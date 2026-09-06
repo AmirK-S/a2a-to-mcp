@@ -2,7 +2,7 @@
 
 Produced by `npm run conformance`, which replays the official MCP conformance suite against the bridge and then aggregates the per-scenario `checks.json` files the suite leaves behind. Do not edit by hand.
 
-Generated: 2026-09-06T04:54:57.305Z
+Generated: 2026-09-06T05:11:16.389Z
 
 ## Command and versions
 
@@ -38,11 +38,11 @@ Checks failed counts every FAILURE the suite wrote, baselined or not. The exit c
 
 Scenarios with no failing check at all:
 
-- `tools-list`, fully green on 2026-07-28 and 2025-11-25: the four bridge tools are listed and well formed.
+- `tools-list`, fully green on 2026-07-28 and 2025-11-25: the four bridge tools are listed and well-formed.
 - `http-header-validation`, fully green on 2026-07-28: the SEP-2243 header rejections.
 - `dns-rebinding-protection`, fully green on 2026-07-28 and 2025-11-25: Host and Origin validation.
-- `server-initialize`, fully green on 2025-11-25: the legacy stateful handshake.
-- `server-session-lifecycle`, fully green on 2025-11-25: the legacy session lifecycle.
+- `server-initialize`, fully green on 2025-11-25: the legacy initialize handshake.
+- `server-session-lifecycle`, no check executed on 2025-11-25: the legacy session lifecycle was not measured.
 
 ## What the suite could not test
 
@@ -178,7 +178,7 @@ None. Every failing check of a scored scenario is covered by an entry of `confor
 | `tools-call-with-progress` | scored | baselined, 1 passed, 1 failed | `tools-call-with-progress:tools-call-with-progress` (fixture-tools-absent) |
 | `tools-list` | scored | green, 3 passed, 0 failed |  |
 
-Baselined failing checks: 72. Unbaselined: 0.
+Baselined failing checks: 72, warnings included, which the baseline treats like failures. Unbaselined: 0.
 
 ## Run `2025-11-25`, scenario by scenario
 
@@ -218,7 +218,7 @@ Baselined failing checks: 72. Unbaselined: 0.
 | `tools-call-with-progress` | scored | baselined, 1 passed, 1 failed | `tools-call-with-progress:tools-call-with-progress` (fixture-tools-absent) |
 | `tools-list` | scored | green, 3 passed, 0 failed |  |
 
-Baselined failing checks: 27. Unbaselined: 0.
+Baselined failing checks: 27, warnings included, which the baseline treats like failures. Unbaselined: 0.
 
 ## Reading the raw results
 

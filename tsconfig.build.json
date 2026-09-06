@@ -2,7 +2,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    // `src` is not in the `files` field of package.json, so a published source
+    // map would name a file the tarball does not carry. Off here, on in
+    // tsconfig.json, where the sources are next to the maps.
+    "sourceMap": false
   },
   "include": ["src"]
 }

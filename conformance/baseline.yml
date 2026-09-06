@@ -16,9 +16,12 @@
 #   capability-not-declared  the bridge declares no prompts, resources,
 #                            completions or logging, and answers -32601
 #   suite-false-negative     the check fails for a reason other than the
-#                            requirement it states
+#                            requirement it states (currently unused)
 #   extension-not-applicable an extension scenario, never scored, built on the
 #                            same hard-coded fixture tools
+#   legacy-stateless-by-design  the 2025-11-25 route is served without a
+#                            session, which the revision makes optional, and a
+#                            SHOULD-level check that needs one warns
 #
 # A baselined failure is still a failure against a requirement set. Nothing
 # whose cause is a defect of the bridge belongs here: `dns-rebinding-protection`
@@ -100,6 +103,13 @@ server:
   - caching:sep-2549-resources-list-caching-hints # capability-not-declared | Reads caching hints off resources/list, which is -32601 for want of a declared resources capability.
   - caching:sep-2549-resources-templates-list-caching-hints # capability-not-declared | Reads caching hints off resources/templates/list, which is -32601 for want of a declared resources capability.
 
+  # --- Legacy route, served without a session --------------------------------
+  # The 2025-11-25 revision makes Mcp-Session-Id optional, and the suite says so
+  # itself: the INFO check server-session-id-visible-ascii of server-initialize
+  # records "Server did not provide an MCP-Session-Id header (session ID is
+  # optional)". This entry is scored, and does change the exit code.
+  - server-sse-multiple-streams:server-sse-multiple-streams-session # legacy-stateless-by-design | The SDK serves the 2025-11-25 route without a session (legacy: stateless), so the SHOULD-level check that opens several SSE streams on one session warns; the bridge issues no Mcp-Session-Id on purpose.
+
   # --- Never scored, listed for the record -----------------------------------
   # Under a requirement set the suite judges scored scenarios only, so nothing
   # below can change an exit code. They are written down because the report has
@@ -115,4 +125,3 @@ server:
   - tasks-mrtr-composition # extension-not-applicable | Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose.
   - json-schema-2020-12:json-schema-2020-12-tool-found # fixture-tools-absent | Looks for json_schema_2020_12_tool, a fixture tool of the suite that the bridge does not expose.
   - http-custom-header-server-validation # fixture-tools-absent | All five checks report untestable: the suite needs a tool carrying x-mcp-header annotations, which the bridge does not expose.
-  - server-sse-multiple-streams:server-sse-multiple-streams-session # legacy-stateless-by-design | The SDK serves the 2025-11-25 route without a session (legacy: stateless), so the SHOULD-level check that opens several SSE streams on one session warns; the bridge issues no Mcp-Session-Id on purpose.

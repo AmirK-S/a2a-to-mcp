@@ -263,7 +263,7 @@ async function sendMessage(
   deps.cards.cardUrlOf(alias);
 
   if (context.requestState !== undefined) {
-    // A later round of a multi round trip: the arguments are the ones the
+    // A later round of a multi-round-trip: the arguments are the ones the
     // first round was called with, and what matters is the answer the client
     // collected and the task the verified state names.
     return deps.mrtr.resume(alias, context.requestState, context.inputResponses);
@@ -318,9 +318,9 @@ async function sendMessage(
  *
  * The SDK lifts the reserved io.modelcontextprotocol/* keys out of the params
  * a handler sees and hands them over as ctx.mcpReq.envelope, and it lifts the
- * multi round trip fields out the same way. Both the revision and the
+ * multi-round-trip fields out the same way. Both the revision and the
  * declarations are checked: the envelope exists on the 2026-07-28 route only,
- * and neither the extension nor the multi round trip is served elsewhere, so a
+ * and neither the extension nor the multi-round-trip is served elsewhere, so a
  * legacy request can never open an MCP task nor be handed an elicitation
  * however it words its params.
  *

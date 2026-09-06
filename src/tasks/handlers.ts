@@ -507,7 +507,7 @@ export function statusMessageOf(task: Task): string {
 /**
  * Key of the single input request the bridge ever issues. One A2A question
  * becomes one elicitation, so one key is enough, and both the extension route
- * and the synchronous multi round trip route use this one.
+ * and the synchronous multi-round-trip route use this one.
  */
 export const ANSWER_KEY = "answer";
 

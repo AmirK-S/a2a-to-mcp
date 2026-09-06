@@ -231,7 +231,8 @@ export function buildInstructions(cards: AgentCardResolver): string {
   return (
     `This server exposes A2A ${A2A_VERSION} agents as MCP tools. ` +
     `The configured agents are: ${described.join(", ")}. ` +
-    "Every tool takes the agent alias as its first argument. " +
+    "Every tool takes the agent alias as its first argument when several agents " +
+    "are configured; with a single agent the alias may be omitted and defaults to it. " +
     "Call a2a_discover on an alias to read that agent card, its skills and its " +
     "capabilities, then a2a_send_message to talk to it. An agent that opens a task " +
     "returns a task handle, which a2a_get_task and a2a_cancel_task take."

@@ -1,5 +1,5 @@
 /**
- * The synchronous multi round trip, for a client that can elicit but does not
+ * The synchronous multi-round-trip, for a client that can elicit but does not
  * hold MCP tasks.
  *
  * Claude Code, measured with 2.1.263, declares exactly {roots, elicitation}:

@@ -13,6 +13,14 @@
  * directory per scenario with its `checks.json`, plus a `run.json` recording
  * the command, the versions, the totals and the scoring of every scenario.
  *
+ * The configuration written below declares exactly one agent, `fixture`, and
+ * that is not neutral. With a single agent the `agent` argument is optional and
+ * defaults to that alias, which is what lets
+ * `http-header-validation:sep-2243-server-accepts-whitespace-header-value`
+ * pass: the scenario calls the first listed tool with no arguments at all. With
+ * two or more agents configured the same check fails, on a missing argument and
+ * not on the header, so it stops measuring the requirement it states.
+ *
  * Exit code: 0 if and only if every scored failure is covered by
  * `conformance/baseline.yml`. That is the suite's own rule, not ours: a
  * baselined failure exits 0, an unbaselined one exits 1, and a baseline entry

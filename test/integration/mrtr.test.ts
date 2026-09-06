@@ -1,8 +1,8 @@
 /**
  * The synchronous side: a client that declares elicitation but not the tasks
  * extension (Claude Code, measured with 2.1.263, declares exactly {roots,
- * elicitation}) gets the A2A INPUT_REQUIRED interruption as a multi round
- * trip request (MCP 2026-07-28, basic/patterns/mrtr): resultType
+ * elicitation}) gets the A2A INPUT_REQUIRED interruption as a
+ * multi-round-trip request (MCP 2026-07-28, basic/patterns/mrtr): resultType
  * input_required, one form elicitation, an opaque requestState, and the
  * client replays tools/call with inputResponses and a fresh id.
  */

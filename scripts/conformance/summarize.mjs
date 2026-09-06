@@ -68,11 +68,11 @@ const HEADLINE_CHECKS = [
 
 /** Scenarios whose green result is the headline of a whole family. */
 const HEADLINE_SCENARIOS = [
-  { name: "tools-list", what: "the four bridge tools are listed and well formed" },
+  { name: "tools-list", what: "the four bridge tools are listed and well-formed" },
   { name: "server-stateless", what: "the SEP-2575 stateless wire, discover to subscriptions" },
   { name: "http-header-validation", what: "the SEP-2243 header rejections" },
   { name: "dns-rebinding-protection", what: "Host and Origin validation" },
-  { name: "server-initialize", what: "the legacy stateful handshake" },
+  { name: "server-initialize", what: "the legacy initialize handshake" },
   { name: "server-session-lifecycle", what: "the legacy session lifecycle" },
 ];
 
@@ -332,10 +332,21 @@ function provenSection(runs) {
           .map((scenario) => ({ run, scenario })),
       )
       .filter((hit) => hit.scenario.failed + hit.scenario.warned === 0);
-    if (hits.length === 0) continue;
-    scenarioLines.push(
-      `- \`${headline.name}\`, fully green on ${hits.map((hit) => hit.run.meta.revision).join(" and ")}: ${headline.what}.`,
-    );
+    // No failing check is not the same as a green result: a scenario that
+    // executed nothing measures nothing, and calling it green would claim a
+    // proof the run never produced.
+    const green = hits.filter((hit) => hit.scenario.passed > 0);
+    const empty = hits.filter((hit) => hit.scenario.passed === 0);
+    if (green.length > 0) {
+      scenarioLines.push(
+        `- \`${headline.name}\`, fully green on ${green.map((hit) => hit.run.meta.revision).join(" and ")}: ${headline.what}.`,
+      );
+    }
+    if (empty.length > 0) {
+      scenarioLines.push(
+        `- \`${headline.name}\`, no check executed on ${empty.map((hit) => hit.run.meta.revision).join(" and ")}: ${headline.what} was not measured.`,
+      );
+    }
   }
   if (scenarioLines.length > 0) {
     lines.push("Scenarios with no failing check at all:");
@@ -541,7 +552,7 @@ async function main() {
     out.push(scenarioTable(run));
     out.push("");
     out.push(
-      `Baselined failing checks: ${run.scenarios.reduce((sum, scenario) => sum + scenario.covered.length, 0)}. Unbaselined: ${verdicts[index].uncovered.length}.`,
+      `Baselined failing checks: ${run.scenarios.reduce((sum, scenario) => sum + scenario.covered.length, 0)}, warnings included, which the baseline treats like failures. Unbaselined: ${verdicts[index].uncovered.length}.`,
     );
     out.push("");
   }
