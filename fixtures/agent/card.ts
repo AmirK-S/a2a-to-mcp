@@ -56,9 +56,11 @@ const SKILLS: AgentSkill[] = [
     description:
       "Drives a Task straight to REJECTED, FAILED or AUTH_REQUIRED, each with an " +
       "explanatory status message. `vanish` opens a Task, moves it to WORKING and then " +
-      "forgets it, so the next GetTask raises TaskNotFoundError.",
-    tags: ["task", "errors", "auth-required", "task-not-found"],
-    examples: ["reject", "fail", "auth", "vanish"],
+      "forgets it, so the next GetTask raises TaskNotFoundError. `error: <code>` makes " +
+      "SendMessage fail with the typed A2A error of that code, from -32001 " +
+      "TaskNotFound to -32009 VersionNotSupported.",
+    tags: ["task", "errors", "auth-required", "task-not-found", "a2a-error-codes"],
+    examples: ["reject", "fail", "auth", "vanish", "error: -32004"],
     inputModes: TEXT_MODES,
     outputModes: TEXT_MODES,
     securityRequirements: [],

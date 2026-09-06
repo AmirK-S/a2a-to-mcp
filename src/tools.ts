@@ -26,7 +26,7 @@ import {
   ProtocolErrorCode,
 } from "@modelcontextprotocol/server";
 
-import { A2ABridgeError, type A2AClientPool } from "./a2a-client.js";
+import { A2ABridgeError, a2aErrorName, type A2AClientPool } from "./a2a-client.js";
 import {
   A2A_VERSION,
   AgentCardError,
@@ -396,7 +396,7 @@ function assertSameAgent(expected: string, actual: string, handle: string): void
  * declined.
  */
 export function toolError(error: unknown): CallToolResult {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = describeError(error);
   const structured: Record<string, unknown> = { error: message };
   if (error instanceof A2ABridgeError && error.a2aErrorCode !== undefined) {
     structured["a2aErrorCode"] = error.a2aErrorCode;
@@ -418,6 +418,25 @@ export function toolError(error: unknown): CallToolResult {
     structuredContent: structured,
     isError: true,
   };
+}
+
+/**
+ * The one line a model reads. A typed A2A failure is announced by the name
+ * and the code the A2A specification gives it, `TaskNotFound (-32001): ...`,
+ * so the code is legible in the text as well as in structuredContent: a
+ * client that only renders content still shows which of the nine errors the
+ * agent raised.
+ */
+function describeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!(error instanceof A2ABridgeError)) {
+    return message;
+  }
+  const name = a2aErrorName(error.a2aErrorCode);
+  if (name === undefined || error.a2aErrorCode === undefined) {
+    return message;
+  }
+  return `${name} (${error.a2aErrorCode}): ${message}`;
 }
 
 /** The human readable summary of a card, for clients that ignore structuredContent. */

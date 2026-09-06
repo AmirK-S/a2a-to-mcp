@@ -568,3 +568,43 @@ describe("conversation context", () => {
     expect(first.contextId).not.toBe(second.contextId);
   });
 });
+
+/**
+ * `error: <code>` raises the typed A2A error of that code on SendMessage.
+ * The command is served by the fixture's transport rather than by its
+ * executor: `DefaultRequestHandler` turns anything the executor throws into a
+ * synthetic FAILED task, so only the layer above it can put an arbitrary A2A
+ * code in the JSON-RPC envelope. What is asserted here is what the official
+ * client rebuilds from that envelope: the semantic class name and the code.
+ */
+describe("error: the nine typed A2A errors", () => {
+  const CODES: Array<[number, string]> = [
+    [-32001, "TaskNotFoundError"],
+    [-32002, "TaskNotCancelableError"],
+    [-32003, "PushNotificationNotSupportedError"],
+    [-32004, "UnsupportedOperationError"],
+    [-32005, "ContentTypeNotSupportedError"],
+    [-32006, "InvalidAgentResponseError"],
+    [-32007, "ExtendedAgentCardNotConfiguredError"],
+    [-32008, "ExtensionSupportRequiredError"],
+    [-32009, "VersionNotSupportedError"],
+  ];
+
+  it.each(CODES)("makes SendMessage reject with %s", async (code, name) => {
+    try {
+      await client.sendMessage(sendRequest(`error: ${code}`));
+      throw new Error(`expected sendMessage to reject with ${name}`);
+    } catch (error) {
+      expect((error as Error).name).toBe(name);
+      expect((error as { envelopeCode?: number }).envelopeCode).toBe(code);
+      expect((error as Error).message).not.toBe("");
+    }
+  });
+
+  it("leaves a code outside the nine to the ordinary command path", async () => {
+    const result = await client.sendMessage(sendRequest("error: -32603"));
+    expect(textOf(expectMessage(result).parts)).toBe(
+      "Unknown command. Try echo:, task:, ask:, slow:, reject, fail, auth, data, file, image.",
+    );
+  });
+});

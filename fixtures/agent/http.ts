@@ -32,6 +32,8 @@ import {
   validateVersion,
 } from "@a2a-js/sdk/server";
 
+import { a2aErrorForCode, parseCommand } from "./commands.js";
+
 const CARD_PATH = `/${AGENT_CARD_PATH}`;
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
@@ -122,6 +124,8 @@ async function handleJsonRpc(
     const card = await requestHandler.getAgentCard();
     validateVersion(context.requestedVersion, card, "JSONRPC");
 
+    raiseRequestedA2AError(body);
+
     const result = await transportHandler.handle(body, context);
 
     if (context.activatedExtensions) {
@@ -174,6 +178,40 @@ async function handleJsonRpc(
       error: JsonRpcTransportHandler.mapToJSONRPCError(error),
     });
   }
+}
+
+/**
+ * Throws the typed A2A error named by an `error: <code>` message, on both
+ * `SendMessage` and `SendStreamingMessage`. Anything the body does not spell
+ * out as one of the nine codes is left alone and reaches the executor as an
+ * ordinary command.
+ */
+function raiseRequestedA2AError(body: Record<string, unknown>): void {
+  const method = body["method"];
+  if (method !== "SendMessage" && method !== "SendStreamingMessage") {
+    return;
+  }
+  const { name, argument } = parseCommand(firstPartTextOf(body));
+  if (name !== "error") {
+    return;
+  }
+  const error = a2aErrorForCode(argument);
+  if (error !== undefined) {
+    throw error;
+  }
+}
+
+/**
+ * Reads the text of the first part of the outgoing message, straight off the
+ * ProtoJSON body. The wire shape of a text `Part` is `{ text: "..." }`; every
+ * other shape, and every malformed body, reads as the empty string and is
+ * left to the transport handler to reject.
+ */
+function firstPartTextOf(body: Record<string, unknown>): string {
+  const params = body["params"] as { message?: { parts?: unknown } } | undefined;
+  const parts = params?.message?.parts;
+  const first = Array.isArray(parts) ? (parts[0] as { text?: unknown } | undefined) : undefined;
+  return typeof first?.text === "string" ? first.text : "";
 }
 
 function isAsyncGenerator(

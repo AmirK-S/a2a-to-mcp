@@ -26,6 +26,29 @@ import { A2AError, isJsonRpcError } from "@a2a-js/sdk/errors";
 
 import type { AgentCardResolver } from "./agent-card.js";
 
+/**
+ * The nine typed A2A errors of specification section 5.4, by JSON-RPC code,
+ * under the name the specification gives them. The `Error` suffix the SDK
+ * classes carry is dropped: what is reported is the A2A error, not the class
+ * of the client library that happened to raise it.
+ */
+const A2A_ERROR_NAMES: Record<number, string> = {
+  [-32_001]: "TaskNotFound",
+  [-32_002]: "TaskNotCancelable",
+  [-32_003]: "PushNotificationNotSupported",
+  [-32_004]: "UnsupportedOperation",
+  [-32_005]: "ContentTypeNotSupported",
+  [-32_006]: "InvalidAgentResponse",
+  [-32_007]: "ExtendedAgentCardNotConfigured",
+  [-32_008]: "ExtensionSupportRequired",
+  [-32_009]: "VersionNotSupported",
+};
+
+/** The specification name of an A2A error code, when it names one. */
+export function a2aErrorName(code: number | undefined): string | undefined {
+  return code === undefined ? undefined : A2A_ERROR_NAMES[code];
+}
+
 /** An upstream A2A failure, ready to be reported as an MCP tool error. */
 export class A2ABridgeError extends Error {
   /** The numeric code of the A2A JSON-RPC envelope, when there was one. */

@@ -24,6 +24,7 @@ import {
 
 import {
   UNKNOWN_COMMAND_REPLY,
+  a2aErrorForCode,
   parseCommand,
   parseSlowMillis,
   reverseText,
@@ -185,6 +186,23 @@ export class FixtureAgentExecutor implements AgentExecutor {
       return;
     }
 
+    // `error:` is normally answered by the transport, before the request
+    // handler ever builds a turn (see `raiseRequestedA2AError` in `http.ts`),
+    // because `DefaultRequestHandler` turns anything thrown here into a
+    // FAILED task instead of a JSON-RPC error. The throw is kept for the
+    // bindings that do not go through that interception: the error still
+    // names the right failure, only as a task status rather than an envelope.
+    if (name === "error") {
+      const requested = a2aErrorForCode(argument);
+      if (requested !== undefined) {
+        throw requested;
+      }
+      eventBus.publish(
+        AgentEvent.message(this.agentMessage(contextId, UNKNOWN_COMMAND_REPLY)),
+      );
+      return;
+    }
+
     // Every remaining command produces a Task, and every turn must open
     // with a `task` or `message` event.
     eventBus.publish(
@@ -283,8 +301,8 @@ export class FixtureAgentExecutor implements AgentExecutor {
         );
         return;
       default:
-        // `echo` returns above; this branch is unreachable and exists so
-        // adding a command without handling it fails to compile.
+        // `echo` and `error` return above; this branch is unreachable and
+        // exists so adding a command without handling it fails to compile.
         return assertUnreachableCommand(name);
     }
   }
