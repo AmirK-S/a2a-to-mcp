@@ -34,7 +34,10 @@ export class HandleExpiredError extends Error {
 }
 
 export interface HandleTableOptions {
-  /** Lifetime of a handle, refreshed by touch. Must be strictly positive. */
+  /**
+   * Lifetime of a handle, restarted by touch and by minting again for the
+   * same idempotency key. Must be strictly positive.
+   */
   ttlMs: number;
   /** Clock, injectable for tests. Defaults to Date.now. */
   now?: () => number;
@@ -77,6 +80,11 @@ export class HandleTable<T> {
    * Mints a handle for a value under an idempotency key. The same key gives
    * back the same handle as long as that handle is neither expired nor
    * deleted; the stored value is refreshed either way.
+   *
+   * Minting again for a live key counts as a use, so the lifetime restarts
+   * exactly as touch restarts it. That is what makes one retention sentence
+   * true of both tables: a context handle is re-minted on every reply that
+   * carries it, so a conversation still going never expires under the client.
    */
   mintFor(key: string, value: T): string {
     const existing = this.#byKey.get(key);
@@ -84,6 +92,7 @@ export class HandleTable<T> {
       const entry = this.#entries.get(existing);
       if (entry !== undefined && !this.#isExpired(entry)) {
         entry.value = value;
+        entry.expiresAt = this.#now() + this.#ttlMs;
         return existing;
       }
       this.#forget(existing);

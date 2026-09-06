@@ -6,6 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { BridgeHandles } from "../../src/envelope.js";
 import {
   HandleExpiredError,
   HandleTable,
@@ -158,5 +159,49 @@ describe("housekeeping", () => {
     expect(text).toMatch(/15 minutes/);
     expect(text).toMatch(/memory/i);
     expect(text).not.toMatch(/[\u2013\u2014]/);
+  });
+});
+
+describe("minting again for a key already held", () => {
+  it("mintFor restarts the lifetime of a live handle, exactly as touch does", () => {
+    const { table, advance } = tableAt(0, 1_000);
+    const first = table.mintFor("hello:ctx-456", ref);
+    advance(900);
+    const second = table.mintFor("hello:ctx-456", ref);
+    expect(second).toBe(first);
+    advance(900);
+    expect(table.resolve(first)).toEqual(ref);
+    advance(200);
+    expect(() => table.resolve(first)).toThrow(HandleExpiredError);
+  });
+
+  it("mints a fresh handle once the key has expired, rather than reviving the old one", () => {
+    const { table, advance } = tableAt(0, 1_000);
+    const first = table.mintFor("hello:ctx-456", ref);
+    advance(1_500);
+    const second = table.mintFor("hello:ctx-456", ref);
+    expect(second).not.toBe(first);
+    expect(table.resolve(second)).toEqual(ref);
+    expect(() => table.resolve(first)).toThrow(UnknownHandleError);
+  });
+
+  it("keeps a context handle alive well past one ttl, which is what the tools promise", () => {
+    // The retention sentence the three tool descriptions carry says fifteen
+    // minutes after the last use. A context handle is never touched by name:
+    // it is minted again, under the same key, by every reply that carries it,
+    // so this is the path that has to restart the clock.
+    let now = 0;
+    const ttlMs = 15 * 60_000;
+    const handles = new BridgeHandles({ ttlMs, now: () => now });
+    const record = { alias: "hello", contextId: "ctx-456" };
+    const handle = handles.mintContext("hello", "ctx-456");
+    for (let turn = 0; turn < 4; turn += 1) {
+      now += 14 * 60_000;
+      expect(handles.resolveContext(handle)).toEqual(record);
+      expect(handles.mintContext("hello", "ctx-456")).toBe(handle);
+    }
+    expect(now).toBeGreaterThan(ttlMs);
+    now += ttlMs + 1;
+    expect(() => handles.resolveContext(handle)).toThrow(HandleExpiredError);
   });
 });

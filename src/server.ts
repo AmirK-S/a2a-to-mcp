@@ -12,7 +12,13 @@ import { createRequire } from "node:module";
 import type { Server } from "node:http";
 
 import { z } from "zod";
-import { McpServer, createMcpHandler, localhostAllowedHostnames } from "@modelcontextprotocol/server";
+import {
+  CLIENT_CAPABILITIES_META_KEY,
+  McpServer,
+  PROTOCOL_VERSION_META_KEY,
+  createMcpHandler,
+  localhostAllowedHostnames,
+} from "@modelcontextprotocol/server";
 
 import { A2AClientPool } from "./a2a-client.js";
 import { A2A_VERSION, AgentCardResolver, DEFAULT_CARD_TTL_MS } from "./agent-card.js";
@@ -20,7 +26,13 @@ import { DEFAULT_HANDLE_TTL_MS, DEFAULT_HOST, DEFAULT_PORT } from "./config.js";
 import { BridgeHandles } from "./envelope.js";
 import { addressOf, createHttpServer, createRouter } from "./http.js";
 import { MrtrService, createBridgeRequestStateCodec } from "./mrtr.js";
-import { TASKS_EXTENSION_ID, TASKS_METHODS, TasksService } from "./tasks/handlers.js";
+import {
+  MODERN_REVISION,
+  TASKS_EXTENSION_ID,
+  TASKS_METHODS,
+  TasksService,
+  type ClientCapabilitiesView,
+} from "./tasks/handlers.js";
 import { registerBridgeTools } from "./tools.js";
 
 /** Path the MCP endpoint is mounted at. */
@@ -154,21 +166,57 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
 }
 
 /**
- * Registers the tasks extension methods on the SDK router.
+ * Registers the tasks extension methods on the SDK router, era by era.
  *
- * They are reached on the 2025 era route only: on the 2026-07-28 route the
- * SDK rejects tasks/get and tasks/cancel before handler lookup, and the HTTP
- * interceptor answers all three ahead of the SDK (DECISIONS.md D06). On that
- * legacy route all three refuse, because the extension is served on the
- * modern revision only (DECISIONS.md D08).
+ * A request carrying the 2026-07-28 per-request envelope is dispatched to
+ * TasksService.handle, the same entry point the HTTP interceptor calls, so
+ * both routes apply the same two gates: the client must have declared the
+ * extension, and the taskId must resolve to a live handle. A request with no
+ * such envelope is on the 2025-11-25 route, where the extension is not served
+ * at all, and is refused with the capability it would have to declare.
+ *
+ * Today only the second branch is ever taken: the interceptor answers every
+ * modern tasks/* ahead of the SDK, because the SDK rejects tasks/get and
+ * tasks/cancel before handler lookup (typescript-sdk issue 2598). The first
+ * branch is what lets that interceptor be deleted the day the issue is fixed,
+ * without turning every modern tasks/* into a refusal.
  */
 function registerTasksHandlers(mcp: McpServer, tasks: TasksService): void {
   const params = z.looseObject({ taskId: z.string().optional() });
   for (const method of TASKS_METHODS) {
-    mcp.server.setRequestHandler(method, { params }, async () =>
-      Promise.resolve(tasks.refuseOnLegacyRoute()),
-    );
+    mcp.server.setRequestHandler(method, { params }, async (parsed, ctx) => {
+      const envelope = modernEnvelope(ctx);
+      if (envelope === undefined) {
+        return tasks.refuseOnLegacyRoute();
+      }
+      return tasks.handle(method, parsed, readClientCapabilities(envelope));
+    });
   }
+}
+
+/**
+ * The per-request envelope of a 2026-07-28 request, or undefined when the
+ * request carried none and is therefore served on the legacy route. The SDK
+ * lifts the reserved io.modelcontextprotocol/* keys out of the params a
+ * handler sees and hands them over as ctx.mcpReq.envelope.
+ */
+function modernEnvelope(ctx: {
+  mcpReq: { envelope?: unknown };
+}): Record<string, unknown> | undefined {
+  const keys = asObject(ctx.mcpReq.envelope);
+  return keys?.[PROTOCOL_VERSION_META_KEY] === MODERN_REVISION ? keys : undefined;
+}
+
+function readClientCapabilities(
+  envelope: Record<string, unknown>,
+): ClientCapabilitiesView | undefined {
+  return asObject(envelope[CLIENT_CAPABILITIES_META_KEY]) as ClientCapabilitiesView | undefined;
+}
+
+function asObject(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 /**
