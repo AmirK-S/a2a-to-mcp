@@ -27,6 +27,9 @@ import type { TaskRecord } from "./store.js";
 /** Identifier of the tasks extension, as clients declare it. */
 export const TASKS_EXTENSION_ID = "io.modelcontextprotocol/tasks";
 
+/** The only MCP revision on which the bridge serves the extension (D08). */
+export const MODERN_REVISION = "2026-07-28";
+
 /** The three methods the extension defines on the 2026-07-28 revision. */
 export const TASKS_METHODS = ["tasks/get", "tasks/update", "tasks/cancel"] as const;
 
@@ -73,6 +76,23 @@ export class TasksService {
       { requiredCapabilities: { extensions: { [TASKS_EXTENSION_ID]: {} } } },
       `This server serves ${TASKS_METHODS.join(", ")} only to clients that declare the ` +
         `${TASKS_EXTENSION_ID} extension in their client capabilities.`,
+    );
+  }
+
+  /**
+   * Refuses the three methods on the 2025-11-25 route, whatever the client
+   * declared at initialize (DECISIONS.md D08). The legacy leg is served
+   * statelessly, one fresh instance per request, so no handshake is
+   * recoverable there; the extension lives on the modern revision only, and
+   * the answer says so rather than pretending the declaration was missing.
+   */
+  refuseOnLegacyRoute(): never {
+    throw new MissingRequiredClientCapabilityError(
+      { requiredCapabilities: { extensions: { [TASKS_EXTENSION_ID]: {} } } },
+      `This server serves the ${TASKS_EXTENSION_ID} extension on the MCP ` +
+        `${MODERN_REVISION} revision only, reached through server/discover. ` +
+        `${TASKS_METHODS.join(", ")} are not available on the 2025-11-25 route, ` +
+        "whatever capabilities the client declared at initialize.",
     );
   }
 

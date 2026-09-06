@@ -2,19 +2,18 @@
  * The HTTP face of the bridge: one node:http server in front of the SDK
  * handler.
  *
- * Three things happen here and nowhere else. The request body is buffered once
+ * Two things happen here and nowhere else. The request body is buffered once
  * and replayed into as many web Requests as needed, because the SDK consumes a
- * web Request and never touches the Node stream. A modern request naming a
+ * web Request and never touches the Node stream. And a modern request naming a
  * tasks method is answered by the interceptor rather than by the SDK
- * (DECISIONS.md D06). And the capabilities a legacy client declared at
- * initialize are remembered across its requests, because createMcpHandler
- * serves 2025 era traffic from a fresh instance per request, which by
- * construction has never seen an initialize.
+ * (DECISIONS.md D06).
+ *
+ * Nothing else is remembered between requests: the bridge holds no session, it
+ * never reads and never mints an Mcp-Session-Id, and the legacy route serves
+ * the tasks methods with a refusal that needs no handshake (DECISIONS.md D08).
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { AsyncLocalStorage } from "node:async_hooks";
 import type { AddressInfo } from "node:net";
-import { randomBytes } from "node:crypto";
 
 import {
   hostHeaderValidationResponse,
@@ -22,72 +21,10 @@ import {
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
 
-import type { ClientCapabilitiesView, TasksService } from "./tasks/handlers.js";
+import type { TasksService } from "./tasks/handlers.js";
 import { interceptTasksRequest } from "./tasks/intercept.js";
 
-/** Header a legacy client echoes back so the bridge finds its declaration. */
-const SESSION_HEADER = "Mcp-Session-Id";
-
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
-
-/** What the bridge knows about the client while one request is being served. */
-export interface RequestScope {
-  /** Capabilities declared at initialize, on the 2025 era route only. */
-  legacyCapabilities: ClientCapabilitiesView | undefined;
-}
-
-/**
- * The capabilities legacy clients declared, keyed by a session identifier the
- * bridge mints on their initialize response.
- *
- * This is the one piece of session state the bridge holds, and it holds
- * nothing else: no task, no context, no conversation. It exists because the
- * tasks extension requires the server to refuse a client that did not declare
- * it, and a stateless legacy instance cannot recall an earlier handshake.
- */
-export class LegacyCapabilityStore {
-  readonly #entries = new Map<string, { capabilities: ClientCapabilitiesView; expiresAt: number }>();
-  readonly #ttlMs: number;
-  readonly #now: () => number;
-
-  constructor(options: { ttlMs: number; now?: () => number }) {
-    this.#ttlMs = options.ttlMs;
-    this.#now = options.now ?? Date.now;
-  }
-
-  /** Remembers one declaration and returns the session identifier for it. */
-  remember(capabilities: ClientCapabilitiesView): string {
-    this.#sweep();
-    const id = randomBytes(16).toString("base64url");
-    this.#entries.set(id, { capabilities, expiresAt: this.#now() + this.#ttlMs });
-    return id;
-  }
-
-  /** The declaration behind a session identifier, if it is still live. */
-  get(id: string | null | undefined): ClientCapabilitiesView | undefined {
-    if (!id) {
-      return undefined;
-    }
-    const entry = this.#entries.get(id);
-    if (entry === undefined) {
-      return undefined;
-    }
-    if (entry.expiresAt <= this.#now()) {
-      this.#entries.delete(id);
-      return undefined;
-    }
-    return entry.capabilities;
-  }
-
-  #sweep(): void {
-    const now = this.#now();
-    for (const [id, entry] of this.#entries) {
-      if (entry.expiresAt <= now) {
-        this.#entries.delete(id);
-      }
-    }
-  }
-}
 
 export interface RouterOptions {
   handler: McpHttpHandler;
@@ -95,8 +32,6 @@ export interface RouterOptions {
   allowedHosts: string[];
   tasks: TasksService;
   serverInfo: { name: string; version: string };
-  sessions: LegacyCapabilityStore;
-  scope: AsyncLocalStorage<RequestScope>;
 }
 
 export interface BridgeRouter {
@@ -129,60 +64,10 @@ export function createRouter(options: RouterOptions): BridgeRouter {
         if (intercepted !== undefined) {
           return intercepted;
         }
-        return options.scope.run({ legacyCapabilities: undefined }, () =>
-          options.handler.fetch(rebuild()),
-        );
       }
-
-      const declared = readInitializeCapabilities(body);
-      const scope: RequestScope = {
-        legacyCapabilities:
-          declared ?? options.sessions.get(request.headers.get("mcp-session-id")),
-      };
-      const response = await options.scope.run(scope, () => options.handler.fetch(rebuild()));
-      if (declared === undefined) {
-        return response;
-      }
-      // The bridge answers initialize with a session identifier of its own so
-      // the declaration above can be found again on the next request.
-      const headers = new Headers(response.headers);
-      headers.set(SESSION_HEADER, options.sessions.remember(declared));
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
+      return options.handler.fetch(rebuild());
     },
   };
-}
-
-/** The capabilities of a legacy initialize body, or undefined for any other request. */
-function readInitializeCapabilities(body: Buffer): ClientCapabilitiesView | undefined {
-  if (body.length === 0) {
-    return undefined;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body.toString("utf8")) as unknown;
-  } catch {
-    return undefined;
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return undefined;
-  }
-  const message = parsed as Record<string, unknown>;
-  if (message["method"] !== "initialize") {
-    return undefined;
-  }
-  const params = message["params"];
-  if (typeof params !== "object" || params === null || Array.isArray(params)) {
-    return {};
-  }
-  const capabilities = (params as Record<string, unknown>)["capabilities"];
-  if (typeof capabilities !== "object" || capabilities === null || Array.isArray(capabilities)) {
-    return {};
-  }
-  return capabilities as ClientCapabilitiesView;
 }
 
 function rebuildRequest(original: Request, body: Buffer): Request {

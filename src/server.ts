@@ -8,7 +8,6 @@
  * SDK builds a fresh server instance per request, so everything that has to
  * survive across requests lives in the closures built here.
  */
-import { AsyncLocalStorage } from "node:async_hooks";
 import { createRequire } from "node:module";
 import type { Server } from "node:http";
 
@@ -19,13 +18,7 @@ import { A2AClientPool } from "./a2a-client.js";
 import { A2A_VERSION, AgentCardResolver, DEFAULT_CARD_TTL_MS } from "./agent-card.js";
 import { DEFAULT_HANDLE_TTL_MS, DEFAULT_HOST, DEFAULT_PORT } from "./config.js";
 import { BridgeHandles } from "./envelope.js";
-import {
-  LegacyCapabilityStore,
-  addressOf,
-  createHttpServer,
-  createRouter,
-  type RequestScope,
-} from "./http.js";
+import { addressOf, createHttpServer, createRouter } from "./http.js";
 import { TASKS_EXTENSION_ID, TASKS_METHODS, TasksService } from "./tasks/handlers.js";
 import { registerBridgeTools } from "./tools.js";
 
@@ -84,7 +77,6 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
   const handles = new BridgeHandles({ ttlMs: handleTtlMs });
   const tasks = new TasksService({ handles, agents, ttlMs: handleTtlMs });
   const serverInfo = { name: manifest.name, version: manifest.version };
-  const scope = new AsyncLocalStorage<RequestScope>();
 
   const handler = createMcpHandler(
     () => {
@@ -94,7 +86,7 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
       });
       mcp.server.registerCapabilities({ extensions: { [TASKS_EXTENSION_ID]: {} } });
       registerBridgeTools(mcp, { cards, agents, handles });
-      registerTasksHandlers(mcp, tasks, scope);
+      registerTasksHandlers(mcp, tasks);
       return mcp;
     },
     { legacy: "stateless" },
@@ -104,9 +96,7 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
     handler,
     tasks,
     serverInfo,
-    sessions: new LegacyCapabilityStore({ ttlMs: handleTtlMs }),
     allowedHosts: [...localhostAllowedHostnames(), ...(options.allowedHosts ?? [])],
-    scope,
   });
 
   let server: Server | undefined;
@@ -158,17 +148,15 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
  *
  * They are reached on the 2025 era route only: on the 2026-07-28 route the
  * SDK rejects tasks/get and tasks/cancel before handler lookup, and the HTTP
- * interceptor answers all three ahead of the SDK (DECISIONS.md D06).
+ * interceptor answers all three ahead of the SDK (DECISIONS.md D06). On that
+ * legacy route all three refuse, because the extension is served on the
+ * modern revision only (DECISIONS.md D08).
  */
-function registerTasksHandlers(
-  mcp: McpServer,
-  tasks: TasksService,
-  scope: AsyncLocalStorage<RequestScope>,
-): void {
+function registerTasksHandlers(mcp: McpServer, tasks: TasksService): void {
   const params = z.looseObject({ taskId: z.string().optional() });
   for (const method of TASKS_METHODS) {
-    mcp.server.setRequestHandler(method, { params }, async (received) =>
-      tasks.handle(method, received, scope.getStore()?.legacyCapabilities),
+    mcp.server.setRequestHandler(method, { params }, async () =>
+      Promise.resolve(tasks.refuseOnLegacyRoute()),
     );
   }
 }
