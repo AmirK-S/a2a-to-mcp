@@ -84,6 +84,7 @@ async function main(): Promise<void> {
   const bridge = await createBridge({
     agents: config.agents,
     handleTtlMs: config.handleTtlMs,
+    allowedHosts: config.allowedHosts,
   });
   const address = await bridge.listen(args.port ?? config.port, args.host ?? config.host);
 

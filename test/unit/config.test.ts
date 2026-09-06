@@ -86,6 +86,23 @@ describe("parseConfig", () => {
     expect(() => parseConfig({ agents, port: 70_000 })).toThrow(ConfigError);
   });
 
+  it("defaults allowedHosts to an empty list and keeps a list of hostnames", () => {
+    const agents = { a: { cardUrl: "http://a.test/card.json" } };
+    expect(parseConfig({ agents }).allowedHosts).toEqual([]);
+    expect(parseConfig({ agents, allowedHosts: ["bridge.internal", "10.0.0.5"] }).allowedHosts).toEqual([
+      "bridge.internal",
+      "10.0.0.5",
+    ]);
+  });
+
+  it("rejects allowedHosts entries that are not bare hostnames", () => {
+    const agents = { a: { cardUrl: "http://a.test/card.json" } };
+    expect(() => parseConfig({ agents, allowedHosts: "bridge.internal" })).toThrow(ConfigError);
+    expect(() => parseConfig({ agents, allowedHosts: [""] })).toThrow(ConfigError);
+    expect(() => parseConfig({ agents, allowedHosts: ["http://bridge.internal"] })).toThrow(ConfigError);
+    expect(() => parseConfig({ agents, allowedHosts: ["bridge.internal:8931"] })).toThrow(/allowedHosts\[0\]/);
+  });
+
   it("names the offending field in the error message", () => {
     let message = "";
     try {

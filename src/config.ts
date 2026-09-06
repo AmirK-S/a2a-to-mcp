@@ -35,6 +35,8 @@ export interface BridgeConfig {
   handleTtlMs: number;
   port: number;
   host: string;
+  /** Extra hostnames accepted in the Host header, without port. Loopback is always accepted. */
+  allowedHosts: string[];
 }
 
 /** Raised when the configuration is unusable. Names the offending field. */
@@ -58,7 +60,32 @@ export function parseConfig(raw: unknown): BridgeConfig {
     handleTtlMs: parsePositiveInteger(root["handleTtlMs"], "handleTtlMs", DEFAULT_HANDLE_TTL_MS),
     port: parsePort(root["port"]),
     host: parseHost(root["host"]),
+    allowedHosts: parseAllowedHosts(root["allowedHosts"]),
   };
+}
+
+const HOSTNAME = /^(\[[0-9a-fA-F:.]+\]|[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*)$/;
+
+function parseAllowedHosts(raw: unknown): string[] {
+  if (raw === undefined) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    throw new ConfigError(`expected an array of hostnames, received ${describe(raw)}`, "allowedHosts");
+  }
+  return raw.map((entry, index) => {
+    const field = `allowedHosts[${index}]`;
+    if (typeof entry !== "string" || entry.length === 0) {
+      throw new ConfigError(`expected a non-empty hostname, received ${describe(entry)}`, field);
+    }
+    if (!HOSTNAME.test(entry)) {
+      throw new ConfigError(
+        `expected a bare hostname without scheme, path or port, received ${JSON.stringify(entry)}`,
+        field,
+      );
+    }
+    return entry;
+  });
 }
 
 /** Reads a JSON configuration file and validates it. */
