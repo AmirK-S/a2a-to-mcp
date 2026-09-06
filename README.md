@@ -201,7 +201,7 @@ Issues and pull requests get an answer within seven days. Bug reports against th
 
 ## End of life
 
-What breaks at the next revision of either protocol is written in [`docs/END-OF-LIFE.md`](docs/END-OF-LIFE.md). Versions are pinned exactly on purpose.
+What breaks at the next revision of either protocol is written in [`docs/END-OF-LIFE.md`](docs/END-OF-LIFE.md). Versions are pinned exactly on purpose. [`docs/ETAT-FINAL.md`](docs/ETAT-FINAL.md) records the state of the project at the first release: what is verified, what is published, what is open and will stay so.
 
 ## License
 
