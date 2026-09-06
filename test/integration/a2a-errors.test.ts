@@ -1,10 +1,11 @@
 /**
- * Step 7: the nine typed A2A errors (specification section 5.4, codes
- * -32001 to -32009) crossing the bridge. BRIEF.md section 3: the A2A code is
- * never re-emitted as a JSON-RPC code, because the MCP range -32000 to
- * -32019 is implementation-defined and would be ambiguous. Every error
- * becomes a tool execution result with isError, the text, and the A2A code
- * in structuredContent.a2aErrorCode.
+ * The nine typed A2A errors (specification section 5.4, codes -32001 to
+ * -32009) crossing the bridge. The A2A code is never re-emitted as a JSON-RPC
+ * code: JSON-RPC reserves -32000 to -32099 for server-defined errors and MCP
+ * already uses -32020, -32021 and -32022 in that band, so a replayed A2A code
+ * would claim an MCP meaning it does not have. Every error becomes a tool
+ * execution result with isError, the text, and the A2A code in
+ * structuredContent.a2aErrorCode.
  *
  * The fixture command "error: <code>" makes the agent raise that error on
  * SendMessage.

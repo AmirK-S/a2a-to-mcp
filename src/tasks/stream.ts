@@ -2,7 +2,7 @@
  * Folding of a SendStreamingMessage stream into one A2A Task snapshot.
  *
  * The stream is a four-armed union discriminated on payload.$case (task,
- * message, statusUpdate, artifactUpdate, recherche/I05 section 8), and payload
+ * message, statusUpdate, artifactUpdate), and payload
  * itself is optional. Only the task and the two update arms carry lifecycle:
  * a message arm on a task stream is a side channel the snapshot ignores.
  *

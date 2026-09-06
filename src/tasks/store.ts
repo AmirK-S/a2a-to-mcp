@@ -20,7 +20,7 @@ import { HandleExpiredError, HandleTable, UnknownHandleError } from "../handles.
 /** Prefix of every MCP task handle minted by the bridge. */
 export const TASK_HANDLE_PREFIX = "tk";
 
-/** A failure of the bridge itself, reported as an MCP failed task (D08). */
+/** A failure of the bridge itself, reported as an MCP failed task. */
 export interface BridgeTaskError {
   code: number;
   message: string;

@@ -1,6 +1,6 @@
 /**
- * Step 2: agent-card module and the a2a_discover tool, against the fixture
- * agent started in-process.
+ * The agent-card module and the a2a_discover tool, against the fixture agent
+ * started in-process.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

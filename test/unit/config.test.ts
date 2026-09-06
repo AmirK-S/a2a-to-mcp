@@ -1,7 +1,7 @@
 /**
- * Configuration file: aliases of A2A agents and their agent card URLs.
- * BRIEF.md section 5.1: "Un fichier de configuration declarant les alias
- * d'agent et leurs URL de carte."
+ * Configuration file: the aliases of the A2A agents and their agent card
+ * URLs, plus the port, the host, the accepted host names and the handle
+ * lifetime. Every field is validated, and an error names its dotted path.
  */
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

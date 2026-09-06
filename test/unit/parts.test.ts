@@ -2,7 +2,7 @@
  * Parts mapping: A2A v1.0.1 Part (oneof text | raw | url | data, plus filename
  * and mediaType outside the oneof) to MCP 2026-07-28 content blocks and back.
  *
- * Every row of BRIEF.md section 3 that names a Part or an Artifact has a test
+ * Every Part kind and every Artifact field the bridge carries has a test
  * here. Losses (filename, artifact identity) must land in _meta, never vanish.
  */
 import { describe, expect, it } from "vitest";

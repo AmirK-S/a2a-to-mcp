@@ -49,9 +49,10 @@ server:
   - elicitation-sep1330-enums:elicitation-sep1330-general # fixture-tools-absent | Needs a fixture tool that elicits with SEP-1330 enums, which the bridge does not expose.
 
   # --- SEP-2322, multi-round tool results -----------------------------------
-  # Fourteen scored scenarios, twelve of which drive a test_input_required_result_*
-  # fixture tool. The two the bridge passes outright, unsupported-methods and
-  # validate-input, are the two that need no fixture at all.
+  # Fourteen scored scenarios. Eleven drive a test_input_required_result_*
+  # fixture tool, one probes prompts/get, and the two the bridge passes
+  # outright, unsupported-methods and validate-input, are the two that need no
+  # fixture at all.
   - input-required-result-basic-elicitation:sep-2322-elicitation-incomplete # fixture-tools-absent | Calls test_input_required_result_elicitation, a fixture tool of the suite that the bridge does not expose.
   - input-required-result-basic-sampling:sep-2322-sampling-incomplete # fixture-tools-absent | Calls test_input_required_result_sampling, a fixture tool of the suite that the bridge does not expose.
   - input-required-result-basic-list-roots:sep-2322-list-roots-incomplete # fixture-tools-absent | Calls test_input_required_result_list_roots, a fixture tool of the suite that the bridge does not expose.
@@ -66,8 +67,9 @@ server:
   - input-required-result-non-tool-request:sep-2322-non-tool-incomplete # capability-not-declared | Probes prompts/get, which the bridge does not declare and answers -32601.
 
   # --- Diagnostic fixture tools inside server-stateless ----------------------
-  # Twenty-four of the thirty checks of this scenario pass. The five below are
-  # named one by one so the other twenty-four stay enforced.
+  # Thirty checks in this scenario: twenty-four pass, four fail, one warns and
+  # one is skipped. The four failures and the warning are named one by one
+  # below, so the twenty-four that pass stay enforced.
   - server-stateless:sep-2575-server-rejects-undeclared-capability # fixture-tools-absent | Reported untestable: needs the diagnostic tool test_missing_capability, which the bridge does not expose.
   - server-stateless:sep-2575-missing-capability-http-400 # fixture-tools-absent | Reported untestable: the -32021 HTTP status needs test_missing_capability, which the bridge does not expose.
   - server-stateless:sep-2575-http-server-no-independent-requests-on-stream # fixture-tools-absent | Reported untestable: needs test_streaming_elicitation to open a response stream, which the bridge does not expose.
@@ -102,15 +104,15 @@ server:
   # Under a requirement set the suite judges scored scenarios only, so nothing
   # below can change an exit code. They are written down because the report has
   # to say why they are out of reach, not because they excuse anything.
-  - tasks-lifecycle # extension-not-applicable | Extension scenario driving greet, slow_compute, failing_job and protocol_error_job, four fixture tools of the suite that the bridge does not expose (D07).
-  - tasks-capability-negotiation # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
-  - tasks-wire-fields # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
-  - tasks-request-state-removal # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
-  - tasks-mrtr-input # extension-not-applicable | Extension scenario driving confirm_delete and multi_input, fixture tools of the suite that the bridge does not expose (D07).
-  - tasks-request-headers # extension-not-applicable | Extension scenario driving greet and slow_compute, fixture tools of the suite that the bridge does not expose (D07).
-  - tasks-dispatch-and-envelope # extension-not-applicable | Extension scenario driving greet, slow_compute and failing_job, fixture tools of the suite that the bridge does not expose (D07).
-  - tasks-required-task-error # extension-not-applicable | Extension scenario whose -32021 grading is reached through failing_job, a fixture tool of the suite that the bridge does not expose (D07).
-  - tasks-mrtr-composition # extension-not-applicable | Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose (D07).
+  - tasks-lifecycle # extension-not-applicable | Extension scenario driving greet, slow_compute, failing_job and protocol_error_job, four fixture tools of the suite that the bridge does not expose.
+  - tasks-capability-negotiation # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
+  - tasks-wire-fields # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
+  - tasks-request-state-removal # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
+  - tasks-mrtr-input # extension-not-applicable | Extension scenario driving confirm_delete and multi_input, fixture tools of the suite that the bridge does not expose.
+  - tasks-request-headers # extension-not-applicable | Extension scenario driving greet and slow_compute, fixture tools of the suite that the bridge does not expose.
+  - tasks-dispatch-and-envelope # extension-not-applicable | Extension scenario driving greet, slow_compute and failing_job, fixture tools of the suite that the bridge does not expose.
+  - tasks-required-task-error # extension-not-applicable | Extension scenario whose -32021 grading is reached through failing_job, a fixture tool of the suite that the bridge does not expose.
+  - tasks-mrtr-composition # extension-not-applicable | Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose.
   - json-schema-2020-12:json-schema-2020-12-tool-found # fixture-tools-absent | Looks for json_schema_2020_12_tool, a fixture tool of the suite that the bridge does not expose.
   - http-custom-header-server-validation # fixture-tools-absent | All five checks report untestable: the suite needs a tool carrying x-mcp-header annotations, which the bridge does not expose.
-  - http-header-validation:sep-2243-server-accepts-whitespace-header-value # suite-false-negative | The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge requires one.
+  - http-header-validation:sep-2243-server-accepts-whitespace-header-value # suite-false-negative | The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge, a2a_discover, requires one.

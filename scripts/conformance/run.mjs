@@ -8,7 +8,7 @@
  * it builds the bridge, starts the fixture A2A agent, writes a throwaway
  * bridge configuration, starts the bridge on a free port, waits until
  * `server/discover` answers, then runs the pinned suite twice, once per
- * requirement set (D03): `2026-07-28` for the stateless wire and `2025-11-25`
+ * requirement set: `2026-07-28` for the stateless wire and `2025-11-25`
  * for the legacy one. Results land in `conformance/results/<revision>/`, one
  * directory per scenario with its `checks.json`, plus a `run.json` recording
  * the command, the versions, the totals and the scoring of every scenario.
@@ -28,7 +28,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Pinned by D03. An alpha, because no stable release knows `--requirements`. */
+/** Pinned exactly. An alpha, because no stable release knows `--requirements`. */
 const SUITE = "@modelcontextprotocol/conformance@0.2.0-alpha.11";
 
 /** One run per requirement set: the two wires are two different protocols. */

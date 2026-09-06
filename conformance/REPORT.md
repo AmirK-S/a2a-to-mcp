@@ -2,7 +2,7 @@
 
 Produced by `npm run conformance`, which replays the official MCP conformance suite against the bridge and then aggregates the per-scenario `checks.json` files the suite leaves behind. Do not edit by hand.
 
-Generated: 2026-09-06T03:31:09.580Z
+Generated: 2026-09-06T04:02:38.577Z
 
 ## Command and versions
 
@@ -71,15 +71,15 @@ A green total would be a lie here, and so would a red one. These scenarios never
 
 **extension-not-applicable.** An extension scenario, never scored, and built on the same hard-coded fixture tools.
 
-- `tasks-capability-negotiation` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
-- `tasks-dispatch-and-envelope` (2026-07-28): Extension scenario driving greet, slow_compute and failing_job, fixture tools of the suite that the bridge does not expose (D07).
-- `tasks-lifecycle` (2026-07-28): Extension scenario driving greet, slow_compute, failing_job and protocol_error_job, four fixture tools of the suite that the bridge does not expose (D07).
-- `tasks-mrtr-composition` (2026-07-28): Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose (D07).
-- `tasks-mrtr-input` (2026-07-28): Extension scenario driving confirm_delete and multi_input, fixture tools of the suite that the bridge does not expose (D07).
-- `tasks-request-headers` (2026-07-28): Extension scenario driving greet and slow_compute, fixture tools of the suite that the bridge does not expose (D07).
-- `tasks-request-state-removal` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
-- `tasks-required-task-error` (2026-07-28): Extension scenario whose -32021 grading is reached through failing_job, a fixture tool of the suite that the bridge does not expose (D07).
-- `tasks-wire-fields` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
+- `tasks-capability-negotiation` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
+- `tasks-dispatch-and-envelope` (2026-07-28): Extension scenario driving greet, slow_compute and failing_job, fixture tools of the suite that the bridge does not expose.
+- `tasks-lifecycle` (2026-07-28): Extension scenario driving greet, slow_compute, failing_job and protocol_error_job, four fixture tools of the suite that the bridge does not expose.
+- `tasks-mrtr-composition` (2026-07-28): Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose.
+- `tasks-mrtr-input` (2026-07-28): Extension scenario driving confirm_delete and multi_input, fixture tools of the suite that the bridge does not expose.
+- `tasks-request-headers` (2026-07-28): Extension scenario driving greet and slow_compute, fixture tools of the suite that the bridge does not expose.
+- `tasks-request-state-removal` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
+- `tasks-required-task-error` (2026-07-28): Extension scenario whose -32021 grading is reached through failing_job, a fixture tool of the suite that the bridge does not expose.
+- `tasks-wire-fields` (2026-07-28): Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose.
 
 **fixture-tools-absent.** The scenario calls a tool name written into the suite. A bridge exposes the tools of the agents it fronts, so the call cannot resolve and the requirement is never exercised.
 
@@ -116,7 +116,7 @@ A green total would be a lie here, and so would a red one. These scenarios never
 
 **suite-false-negative.** The check fails for a reason other than the requirement it states. The bridge satisfies the requirement, verified by hand.
 
-- `http-header-validation:sep-2243-server-accepts-whitespace-header-value` (2026-07-28): The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge requires one.
+- `http-header-validation:sep-2243-server-accepts-whitespace-header-value` (2026-07-28): The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge, a2a_discover, requires one.
 
 ## Failures not covered by the baseline
 

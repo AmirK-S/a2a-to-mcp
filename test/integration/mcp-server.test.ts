@@ -1,8 +1,8 @@
 /**
- * The MCP face of the bridge, step 1 of the plan: Streamable HTTP,
- * server/discover, tools/list with cache fields, resultType everywhere,
- * mandatory headers, both eras on one endpoint (DECISIONS.md D01), and the
- * tasks/* interception in front of the SDK on the modern route (D06).
+ * The MCP face of the bridge: Streamable HTTP, server/discover, tools/list
+ * with cache fields, resultType everywhere, mandatory headers, both eras on
+ * one endpoint, and the tasks/* interception in front of the SDK on the
+ * modern route.
  *
  * No A2A agent is needed here: the aliases point at an unreachable card so
  * that failure paths are exercised without a network.
@@ -156,7 +156,7 @@ describe("mandatory headers and envelope on the 2026-07-28 route", () => {
   });
 });
 
-describe("the 2025-11-25 route on the same endpoint (D01)", () => {
+describe("the 2025-11-25 route on the same endpoint", () => {
   it("negotiates the legacy revision through initialize", async () => {
     const session = new LegacySession(url);
     const result = expectResult(await session.initialize());
@@ -214,7 +214,7 @@ describe("tool execution errors are results, not protocol errors", () => {
   });
 });
 
-describe("tasks/* reach the bridge on both routes (D06)", () => {
+describe("tasks/* reach the bridge on both routes", () => {
   it.each(["tasks/get", "tasks/cancel"])(
     "%s on the modern route is served by the bridge, never -32601 from the SDK guard",
     async (method) => {
@@ -311,7 +311,7 @@ describe("tasks/* reach the bridge on both routes (D06)", () => {
     await session.close();
   });
 
-  it("tasks/get on the legacy route answers -32021 whatever the client declared: the extension is 2026-07-28 only (D08)", async () => {
+  it("tasks/get on the legacy route answers -32021 whatever the client declared: the extension is 2026-07-28 only", async () => {
     const session = new LegacySession(url, TASKS_CLIENT_CAPABILITIES);
     await session.initialize();
     const error = expectError(await session.post("tasks/get", { taskId: "tk_doesnotexist" }));

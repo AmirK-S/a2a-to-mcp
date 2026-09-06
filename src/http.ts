@@ -6,11 +6,11 @@
  * and replayed into as many web Requests as needed, because the SDK consumes a
  * web Request and never touches the Node stream. And a modern request naming a
  * tasks method is answered by the interceptor rather than by the SDK
- * (DECISIONS.md D06).
+ * (typescript-sdk issue 2598).
  *
  * Nothing else is remembered between requests: the bridge holds no session, it
  * never reads and never mints an Mcp-Session-Id, and the legacy route serves
- * the tasks methods with a refusal that needs no handshake (DECISIONS.md D08).
+ * the tasks methods with a refusal that needs no handshake.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";

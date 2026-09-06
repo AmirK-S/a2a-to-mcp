@@ -65,8 +65,7 @@ export interface CallContext {
   /**
    * True when the client declared the tasks extension on the modern route.
    * The declaration is read from the per-request envelope and nowhere else:
-   * the bridge holds no session, so a legacy client never reaches this
-   * (DECISIONS.md D08).
+   * the bridge holds no session, so a legacy client never reaches this.
    */
   tasksExtension: boolean;
   /**
@@ -158,7 +157,7 @@ function buildTools(deps: ToolDeps): BridgeTool[] {
         "Fetches and returns the agent card of one configured A2A agent: its name, " +
         "description, transport interfaces, capabilities and skills. Call it before the " +
         "other tools to learn what the agent can be asked for. The card is served from a " +
-        "short lived cache, so repeated calls do not hit the agent.",
+        "short-lived cache, so repeated calls do not hit the agent.",
       inputSchema: z.object({ agent: agentEnum }),
       argsSchema: z.object({ agent: agentString }),
       run: async (args, dependencies) => discover(String(args["agent"]), dependencies),
@@ -313,7 +312,7 @@ async function sendMessage(
  * declarations are checked: the envelope exists on the 2026-07-28 route only,
  * and neither the extension nor the multi round trip is served elsewhere, so a
  * legacy request can never open an MCP task nor be handed an elicitation
- * however it words its params (DECISIONS.md D08).
+ * however it words its params.
  *
  * The requestState has already passed the seam verify hook by the time a
  * handler runs, so what the accessor returns here is the decoded payload of a

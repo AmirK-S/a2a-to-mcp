@@ -118,7 +118,7 @@ export function toMcpStatus(state: TaskState): McpStatusMapping {
  * inside the result envelope. On the extension wire an A2A failure is a
  * completed MCP task whose result carries isError, because the underlying
  * tools/call did produce a result; the failed status is reserved for a
- * failure of the bridge itself (DECISIONS.md D08).
+ * failure of the bridge itself.
  */
 export function toTaskExtensionStatus(state: TaskState): McpTaskStatus {
   switch (state) {

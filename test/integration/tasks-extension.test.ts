@@ -1,12 +1,10 @@
 /**
- * Steps 5, 6 and 7: the io.modelcontextprotocol/tasks extension served for
- * real, on the wire, against the fixture agent. Each block names the
- * conformance scenario file whose checks it reproduces (DECISIONS.md D07),
- * because those scenarios call hard-coded tool names the bridge cannot
- * expose.
+ * The io.modelcontextprotocol/tasks extension served for real, on the wire,
+ * against the fixture agent. Each block names the conformance scenario whose
+ * checks it reproduces, because those scenarios call hard-coded tool names a
+ * bridge cannot expose and so cannot be scored against it.
  *
- * Wire facts come from the extension specification 2026-07-28 (tasks.md) as
- * extracted in recherche/I04b-tasks-spec-et-scenarios.md.
+ * Wire facts come from the extension specification 2026-07-28 (tasks.md).
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -181,7 +179,7 @@ describe("lifecycle (lifecycle.ts)", () => {
     expect(second["status"]).toBe("completed");
   });
 
-  it("carries a failed A2A task as completed with isError, exactly what tools/call returns (D08)", async () => {
+  it("carries a failed A2A task as completed with isError, exactly what tools/call returns", async () => {
     const created = expectResult(await sendWithTasks("fail"));
     const task = await pollUntil(created["taskId"] as string, isTerminal);
     expect(task["status"]).toBe("completed");
@@ -424,7 +422,7 @@ describe("expiry and the legacy route", () => {
   });
 });
 
-describe("the generic tools alongside the extension (step 7)", () => {
+describe("the generic tools alongside the extension", () => {
   it("a2a_get_task reads the same task through a tool, with historyLength honoured", async () => {
     const created = expectResult(await sendWithTasks("ask: tone"));
     await pollUntil(created["taskId"] as string, (t) => t["status"] === "input_required");

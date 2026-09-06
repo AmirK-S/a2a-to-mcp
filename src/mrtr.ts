@@ -2,7 +2,7 @@
  * The synchronous multi round trip, for a client that can elicit but does not
  * hold MCP tasks.
  *
- * Claude Code 2.1.261 declares exactly {roots, elicitation} (recherche/I01):
+ * Claude Code, measured with 2.1.263, declares exactly {roots, elicitation}:
  * it cannot be handed an MCP task, but it can answer a question. So an A2A
  * task parked in INPUT_REQUIRED comes back as an InputRequiredResult instead
  * of an envelope the model has to notice, and the client replays the same

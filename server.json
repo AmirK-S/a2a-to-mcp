@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.AmirK-S/a2a-to-mcp",
+  "title": "A2A to MCP bridge",
+  "description": "A2A v1.0.1 agents as MCP 2026-07-28 tools, with the tasks extension",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/AmirK-S/a2a-to-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "a2a-to-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://localhost:{--port}/mcp"
+      },
+      "packageArguments": [
+        {
+          "type": "named",
+          "name": "--config",
+          "description": "JSON file declaring the A2A agents to expose, by alias",
+          "isRequired": true,
+          "format": "filepath",
+          "placeholder": "agents.json"
+        },
+        {
+          "type": "named",
+          "name": "--port",
+          "description": "TCP port to bind",
+          "isRequired": false,
+          "default": "8931"
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
  * Assembly of the bridge: the MCP server the SDK serves, the A2A side it
  * fronts, and the HTTP endpoint that carries both eras.
  *
- * One endpoint answers two protocol revisions (DECISIONS.md D01): a client
+ * One endpoint answers two protocol revisions: a client
  * that probes with server/discover gets 2026-07-28, a client that opens with
  * initialize gets 2025-11-25, and the tools are declared once for both. The
  * SDK builds a fresh server instance per request, so everything that has to

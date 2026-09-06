@@ -1,5 +1,5 @@
 /**
- * Step 4: a2a_send_message when the agent answers synchronously, either with
+ * a2a_send_message when the agent answers synchronously, either with
  * a direct Message or with a Task that is already terminal when SendMessage
  * returns. No tasks extension declared by the client here: everything is a
  * plain CallToolResult with resultType complete.

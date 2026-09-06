@@ -2,8 +2,9 @@
  * The three methods of the io.modelcontextprotocol/tasks extension, written
  * once and served by both routes: the HTTP interceptor calls them on the
  * 2026-07-28 route, where the SDK refuses tasks/get and tasks/cancel before
- * handler lookup (DECISIONS.md D06), and the SDK calls them through
- * setRequestHandler on the 2025-11-25 route.
+ * handler lookup (typescript-sdk issue 2598), and the SDK calls them through
+ * setRequestHandler, which dispatches a modern request here and refuses a
+ * legacy one.
  *
  * Every gate the extension mandates lives here rather than in either caller,
  * so the two routes cannot drift: the client must have declared the extension
@@ -30,7 +31,7 @@ import type { BridgeTaskError, TaskRecord } from "./store.js";
 /** Identifier of the tasks extension, as clients declare it. */
 export const TASKS_EXTENSION_ID = "io.modelcontextprotocol/tasks";
 
-/** The only MCP revision on which the bridge serves the extension (D08). */
+/** The only MCP revision on which the bridge serves the extension. */
 export const MODERN_REVISION = "2026-07-28";
 
 /** The three methods the extension defines on the 2026-07-28 revision. */
@@ -98,7 +99,7 @@ export class TasksService {
 
   /**
    * Refuses the three methods on the 2025-11-25 route, whatever the client
-   * declared at initialize (DECISIONS.md D08). The legacy leg is served
+   * declared at initialize. The legacy leg is served
    * statelessly, one fresh instance per request, so no handshake is
    * recoverable there; the extension lives on the modern revision only, and
    * the answer says so rather than pretending the declaration was missing.
@@ -472,7 +473,7 @@ export class TasksService {
   }
 }
 
-/** Describes a bridge-level failure the way tasks/get reports it (D08). */
+/** Describes a bridge-level failure the way tasks/get reports it. */
 function bridgeErrorOf(alias: string, error: unknown): BridgeTaskError {
   const a2aErrorCode = error instanceof A2ABridgeError ? error.a2aErrorCode : undefined;
   return {

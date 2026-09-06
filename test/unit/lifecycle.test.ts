@@ -2,8 +2,8 @@
  * Lifecycle mapping: A2A v1.0.1 TaskState (nine values, numeric enum) to the
  * io.modelcontextprotocol/tasks 2026-07-28 TaskStatus (five string values).
  *
- * Every row of BRIEF.md section 3.1 has a test here. Rows marked as a loss
- * must be reported as a loss by the mapper, not silently absorbed.
+ * Each of the nine A2A states has a test here. A state whose mapping loses
+ * information must be reported as a loss by the mapper, not silently absorbed.
  */
 import { describe, expect, it } from "vitest";
 import { TaskState } from "@a2a-js/sdk";

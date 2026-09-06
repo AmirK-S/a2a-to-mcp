@@ -3,10 +3,10 @@
  *
  * @modelcontextprotocol/server 2.0.0 answers -32601 to tasks/get and
  * tasks/cancel before it ever looks a handler up, because both names live in
- * the 2025 method registry and not in the 2026 one (typescript-sdk#2598,
- * measured in recherche/I04, proofs G and M). No option disarms that guard, so
- * the three methods are answered here, in front of the SDK. Everything else,
- * and every legacy request, is passed straight through.
+ * the 2025 method registry and not in the 2026 one (typescript-sdk#2598). No
+ * option disarms that guard, so the three methods are answered here, in front
+ * of the SDK. Everything else, and every legacy request, is passed straight
+ * through.
  *
  * The header validation the SDK performs on its own traffic is not reusable:
  * validateStandardRequestHeaders and validateMcpParamHeaders are not exported.
