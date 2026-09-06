@@ -87,6 +87,26 @@ Every tool takes the agent alias as its first argument when several agents are c
 | `a2a_get_task` | `agent`, `taskHandle`, `historyLength?` | the task envelope with its history |
 | `a2a_cancel_task` | `agent`, `taskHandle` | the task envelope after the cancellation request |
 
+### Calling a tool on the wire
+
+The argument that carries the message is `text`. A complete `tools/call` on the `2026-07-28` route, as an MCP client sends it:
+
+```sh
+curl -sS http://127.0.0.1:8931/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2026-07-28' \
+  -H 'Mcp-Method: tools/call' \
+  -H 'Mcp-Name: a2a_send_message' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
+        "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                 "io.modelcontextprotocol/clientCapabilities":{}},
+        "name":"a2a_send_message",
+        "arguments":{"agent":"hello","text":"task: hello world"}}}'
+```
+
+A run against a public A2A agent, with the one mistake a first user makes, is in [`docs/USAGE-REEL.md`](docs/USAGE-REEL.md).
+
 ### Result contract
 
 Each reply is a `CallToolResult` whose `content` holds the translated parts and whose `structuredContent` is an envelope:
