@@ -13,7 +13,7 @@ import { createRequire } from "node:module";
 import type { Server } from "node:http";
 
 import { z } from "zod";
-import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
+import { McpServer, createMcpHandler, localhostAllowedHostnames } from "@modelcontextprotocol/server";
 
 import { A2AClientPool } from "./a2a-client.js";
 import { A2A_VERSION, AgentCardResolver, DEFAULT_CARD_TTL_MS } from "./agent-card.js";
@@ -45,6 +45,12 @@ export interface BridgeOptions {
   handleTtlMs?: number;
   /** Lifetime of a cached agent card. Defaults to one minute. */
   cardTtlMs?: number;
+  /**
+   * Extra hostnames accepted in the Host header, without port. The loopback
+   * names are always accepted. Anything else is refused before the SDK sees
+   * the request (DNS rebinding protection).
+   */
+  allowedHosts?: string[];
 }
 
 export interface BridgeAddress {
@@ -99,6 +105,7 @@ export async function createBridge(options: BridgeOptions): Promise<Bridge> {
     tasks,
     serverInfo,
     sessions: new LegacyCapabilityStore({ ttlMs: handleTtlMs }),
+    allowedHosts: [...localhostAllowedHostnames(), ...(options.allowedHosts ?? [])],
     scope,
   });
 

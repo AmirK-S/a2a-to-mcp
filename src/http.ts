@@ -16,7 +16,11 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { AddressInfo } from "node:net";
 import { randomBytes } from "node:crypto";
 
-import { isLegacyRequest, type McpHttpHandler } from "@modelcontextprotocol/server";
+import {
+  hostHeaderValidationResponse,
+  isLegacyRequest,
+  type McpHttpHandler,
+} from "@modelcontextprotocol/server";
 
 import type { ClientCapabilitiesView, TasksService } from "./tasks/handlers.js";
 import { interceptTasksRequest } from "./tasks/intercept.js";
@@ -87,6 +91,8 @@ export class LegacyCapabilityStore {
 
 export interface RouterOptions {
   handler: McpHttpHandler;
+  /** Hostnames accepted in the Host header, without port (DNS rebinding protection). */
+  allowedHosts: string[];
   tasks: TasksService;
   serverInfo: { name: string; version: string };
   sessions: LegacyCapabilityStore;
@@ -101,6 +107,10 @@ export interface BridgeRouter {
 export function createRouter(options: RouterOptions): BridgeRouter {
   return {
     async fetch(request: Request): Promise<Response> {
+      const rejected = hostHeaderValidationResponse(request, options.allowedHosts);
+      if (rejected !== undefined) {
+        return rejected;
+      }
       const body =
         request.method === "GET" || request.method === "HEAD"
           ? Buffer.alloc(0)
