@@ -115,4 +115,4 @@ server:
   - tasks-mrtr-composition # extension-not-applicable | Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose.
   - json-schema-2020-12:json-schema-2020-12-tool-found # fixture-tools-absent | Looks for json_schema_2020_12_tool, a fixture tool of the suite that the bridge does not expose.
   - http-custom-header-server-validation # fixture-tools-absent | All five checks report untestable: the suite needs a tool carrying x-mcp-header annotations, which the bridge does not expose.
-  - http-header-validation:sep-2243-server-accepts-whitespace-header-value # suite-false-negative | The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge, a2a_discover, requires one.
+  - server-sse-multiple-streams:server-sse-multiple-streams-session # legacy-stateless-by-design | The SDK serves the 2025-11-25 route without a session (legacy: stateless), so the SHOULD-level check that opens several SSE streams on one session warns; the bridge issues no Mcp-Session-Id on purpose.

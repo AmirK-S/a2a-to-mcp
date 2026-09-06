@@ -1,0 +1,67 @@
+[
+  {
+    "id": "tools-list",
+    "name": "ToolsList",
+    "description": "Server lists available tools with valid structure",
+    "status": "SUCCESS",
+    "timestamp": "2026-09-06T04:54:56.346Z",
+    "specReferences": [
+      {
+        "id": "MCP-Tools-List",
+        "url": "https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools"
+      }
+    ],
+    "details": {
+      "toolCount": 4,
+      "tools": [
+        "a2a_discover",
+        "a2a_send_message",
+        "a2a_get_task",
+        "a2a_cancel_task"
+      ]
+    }
+  },
+  {
+    "id": "tools-name-format",
+    "name": "ToolsNameFormat",
+    "description": "Tool names are 1-64 characters and match ^[A-Za-z0-9_./-]+$",
+    "specReferences": [
+      {
+        "id": "MCP-Tools-List",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools#listing-tools"
+      },
+      {
+        "id": "SEP-986",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool-names"
+      }
+    ],
+    "timestamp": "2026-09-06T04:54:56.346Z",
+    "status": "SUCCESS",
+    "details": {
+      "toolCount": 4,
+      "results": {
+        "a2a_discover": "valid",
+        "a2a_send_message": "valid",
+        "a2a_get_task": "valid",
+        "a2a_cancel_task": "valid"
+      }
+    }
+  },
+  {
+    "id": "wire-schema-valid",
+    "name": "WireSchemaValid",
+    "description": "Every JSON-RPC message the implementation sent is valid per the spec JSON schema for the negotiated spec version",
+    "status": "SUCCESS",
+    "timestamp": "2026-09-06T04:54:56.346Z",
+    "specReferences": [
+      {
+        "id": "MCP-Schema",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-11-25/schema.json"
+      }
+    ],
+    "details": {
+      "messagesValidated": 5,
+      "violations": []
+    }
+  }
+]

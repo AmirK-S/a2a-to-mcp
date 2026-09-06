@@ -2,7 +2,7 @@
 
 Produced by `npm run conformance`, which replays the official MCP conformance suite against the bridge and then aggregates the per-scenario `checks.json` files the suite leaves behind. Do not edit by hand.
 
-Generated: 2026-09-06T04:02:38.577Z
+Generated: 2026-09-06T04:54:57.305Z
 
 ## Command and versions
 
@@ -10,7 +10,7 @@ Generated: 2026-09-06T04:02:38.577Z
 | --- | --- |
 | Suite | `@modelcontextprotocol/conformance@0.2.0-alpha.11` |
 | Node | v26.4.0 |
-| Bridge endpoint | `http://127.0.0.1:49234/mcp` |
+| Bridge endpoint | `http://127.0.0.1:52213/mcp` |
 | Baseline | `conformance/baseline.yml` |
 | Command, 2026-07-28 | `npx -y @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url http://127.0.0.1:<port>/mcp --requirements 2026-07-28 -o conformance/results/2026-07-28 --expected-failures conformance/baseline.yml` |
 | Command, 2025-11-25 | `npx -y @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url http://127.0.0.1:<port>/mcp --requirements 2025-11-25 -o conformance/results/2025-11-25 --expected-failures conformance/baseline.yml` |
@@ -19,8 +19,8 @@ Generated: 2026-09-06T04:02:38.577Z
 
 | Requirement set | Scenarios | Scored | Checks passed | Checks failed | Warnings | Unbaselined failures | Exit code |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `2026-07-28` | 50 | 37 | 100 | 68 | 5 | 0 | 0 |
-| `2025-11-25` | 33 | 30 | 39 | 26 | 2 | 0 | 0 |
+| `2026-07-28` | 50 | 37 | 101 | 67 | 5 | 0 | 0 |
+| `2025-11-25` | 33 | 30 | 35 | 26 | 4 | 0 | 0 |
 
 Checks failed counts every FAILURE the suite wrote, baselined or not. The exit code is the suite's verdict once the baseline is applied: 0 means every failing check of a scored scenario has an entry, and no entry has gone stale.
 
@@ -39,6 +39,7 @@ Checks failed counts every FAILURE the suite wrote, baselined or not. The exit c
 Scenarios with no failing check at all:
 
 - `tools-list`, fully green on 2026-07-28 and 2025-11-25: the four bridge tools are listed and well formed.
+- `http-header-validation`, fully green on 2026-07-28: the SEP-2243 header rejections.
 - `dns-rebinding-protection`, fully green on 2026-07-28 and 2025-11-25: Host and Origin validation.
 - `server-initialize`, fully green on 2025-11-25: the legacy stateful handshake.
 - `server-session-lifecycle`, fully green on 2025-11-25: the legacy session lifecycle.
@@ -114,9 +115,9 @@ A green total would be a lie here, and so would a red one. These scenarios never
 - `tools-call-with-logging:tools-call-with-logging` (2025-11-25): Calls test_logging_tool on the legacy wire, a fixture tool of the suite that the bridge does not expose.
 - `tools-call-with-progress:tools-call-with-progress` (2025-11-25, 2026-07-28): Calls test_tool_with_progress, a fixture tool of the suite that the bridge does not expose.
 
-**suite-false-negative.** The check fails for a reason other than the requirement it states. The bridge satisfies the requirement, verified by hand.
+**legacy-stateless-by-design.** The 2025-11-25 route is served statelessly by the SDK (legacy: stateless), so no Mcp-Session-Id is issued and a SHOULD-level check that needs a session reports a warning. The bridge holds no session on purpose.
 
-- `http-header-validation:sep-2243-server-accepts-whitespace-header-value` (2026-07-28): The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge, a2a_discover, requires one.
+- `server-sse-multiple-streams:server-sse-multiple-streams-session` (2025-11-25): The SDK serves the 2025-11-25 route without a session (legacy: stateless), so the SHOULD-level check that opens several SSE streams on one session warns; the bridge issues no Mcp-Session-Id on purpose.
 
 ## Failures not covered by the baseline
 
@@ -130,7 +131,7 @@ None. Every failing check of a scored scenario is covered by an entry of `confor
 | `completion-complete` | scored | baselined, 1 passed, 1 failed | `completion-complete:completion-complete` (capability-not-declared) |
 | `dns-rebinding-protection` | scored | green, 2 passed, 0 failed |  |
 | `http-custom-header-server-validation` | not scored (pending) | baselined, 1 passed, 5 failed | `http-custom-header-server-validation` (fixture-tools-absent) |
-| `http-header-validation` | not scored (pending) | baselined, 13 passed, 1 failed | `http-header-validation:sep-2243-server-accepts-whitespace-header-value` (suite-false-negative) |
+| `http-header-validation` | not scored (pending) | green, 14 passed, 0 failed |  |
 | `input-required-result-basic-elicitation` | scored | baselined, 1 passed, 1 failed | `input-required-result-basic-elicitation:sep-2322-elicitation-incomplete` (fixture-tools-absent) |
 | `input-required-result-basic-list-roots` | scored | baselined, 1 passed, 1 failed | `input-required-result-basic-list-roots:sep-2322-list-roots-incomplete` (fixture-tools-absent) |
 | `input-required-result-basic-sampling` | scored | baselined, 1 passed, 1 failed | `input-required-result-basic-sampling:sep-2322-sampling-incomplete` (fixture-tools-absent) |
@@ -177,7 +178,7 @@ None. Every failing check of a scored scenario is covered by an entry of `confor
 | `tools-call-with-progress` | scored | baselined, 1 passed, 1 failed | `tools-call-with-progress:tools-call-with-progress` (fixture-tools-absent) |
 | `tools-list` | scored | green, 3 passed, 0 failed |  |
 
-Baselined failing checks: 73. Unbaselined: 0.
+Baselined failing checks: 72. Unbaselined: 0.
 
 ## Run `2025-11-25`, scenario by scenario
 
@@ -201,10 +202,10 @@ Baselined failing checks: 73. Unbaselined: 0.
 | `resources-subscribe` | scored | baselined, 1 passed, 1 failed | `resources-subscribe:resources-subscribe` (capability-not-declared) |
 | `resources-templates-read` | scored | baselined, 1 passed, 1 failed | `resources-templates-read:resources-templates-read` (capability-not-declared) |
 | `resources-unsubscribe` | scored | baselined, 1 passed, 1 failed | `resources-unsubscribe:resources-unsubscribe` (capability-not-declared) |
-| `server-initialize` | scored | green, 3 passed, 0 failed |  |
-| `server-session-lifecycle` | not scored (added-after-release) | green, 1 passed, 0 failed, 2 skipped |  |
-| `server-sse-multiple-streams` | scored | green, 2 passed, 0 failed |  |
-| `server-sse-polling` | not scored (pending) | failing, not scored and not baselined, 0 passed, 0 failed, 2 warning |  |
+| `server-initialize` | scored | green, 2 passed, 0 failed |  |
+| `server-session-lifecycle` | not scored (added-after-release) | green, 0 passed, 0 failed |  |
+| `server-sse-multiple-streams` | scored | baselined, 0 passed, 0 failed, 1 warning | `server-sse-multiple-streams:server-sse-multiple-streams-session` (legacy-stateless-by-design) |
+| `server-sse-polling` | not scored (pending) | failing, not scored and not baselined, 0 passed, 0 failed, 3 warning |  |
 | `tools-call-audio` | scored | baselined, 1 passed, 1 failed | `tools-call-audio:tools-call-audio` (fixture-tools-absent) |
 | `tools-call-elicitation` | scored | baselined, 1 passed, 1 failed | `tools-call-elicitation:tools-call-elicitation` (fixture-tools-absent) |
 | `tools-call-embedded-resource` | scored | baselined, 1 passed, 1 failed | `tools-call-embedded-resource:tools-call-embedded-resource` (fixture-tools-absent) |
@@ -217,7 +218,7 @@ Baselined failing checks: 73. Unbaselined: 0.
 | `tools-call-with-progress` | scored | baselined, 1 passed, 1 failed | `tools-call-with-progress:tools-call-with-progress` (fixture-tools-absent) |
 | `tools-list` | scored | green, 3 passed, 0 failed |  |
 
-Baselined failing checks: 26. Unbaselined: 0.
+Baselined failing checks: 27. Unbaselined: 0.
 
 ## Reading the raw results
 

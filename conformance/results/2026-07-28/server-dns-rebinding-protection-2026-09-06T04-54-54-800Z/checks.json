@@ -1,0 +1,81 @@
+[
+  {
+    "id": "localhost-host-rebinding-rejected",
+    "name": "DNSRebindingRejected",
+    "description": "Server rejects requests with non-localhost Host/Origin headers",
+    "timestamp": "2026-09-06T04:54:54.800Z",
+    "specReferences": [
+      {
+        "id": "MCP-DNS-Rebinding-Protection",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices#local-mcp-server-compromise"
+      },
+      {
+        "id": "MCP-Transport-Security",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#security-warning"
+      }
+    ],
+    "status": "SUCCESS",
+    "details": {
+      "hostHeader": "evil.example.com",
+      "originHeader": "http://evil.example.com",
+      "statusCode": 403,
+      "body": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32000,
+          "message": "Invalid Host: evil.example.com"
+        },
+        "id": null
+      }
+    }
+  },
+  {
+    "id": "localhost-host-valid-accepted",
+    "name": "LocalhostHostAccepted",
+    "description": "Server accepts requests with valid localhost Host/Origin headers",
+    "timestamp": "2026-09-06T04:54:54.800Z",
+    "specReferences": [
+      {
+        "id": "MCP-DNS-Rebinding-Protection",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices#local-mcp-server-compromise"
+      },
+      {
+        "id": "MCP-Transport-Security",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#security-warning"
+      }
+    ],
+    "status": "SUCCESS",
+    "details": {
+      "hostHeader": "127.0.0.1:52213",
+      "originHeader": "http://127.0.0.1:52213",
+      "statusCode": 200,
+      "body": {
+        "result": {
+          "supportedVersions": [
+            "2026-07-28"
+          ],
+          "capabilities": {
+            "extensions": {
+              "io.modelcontextprotocol/tasks": {}
+            },
+            "tools": {
+              "listChanged": true
+            }
+          },
+          "instructions": "This server exposes A2A 1.0 agents as MCP tools. The configured agents are: fixture. Every tool takes the agent alias as its first argument. Call a2a_discover on an alias to read that agent card, its skills and its capabilities, then a2a_send_message to talk to it. An agent that opens a task returns a task handle, which a2a_get_task and a2a_cancel_task take.",
+          "resultType": "complete",
+          "ttlMs": 0,
+          "cacheScope": "private",
+          "_meta": {
+            "io.modelcontextprotocol/serverInfo": {
+              "name": "a2a-to-mcp",
+              "version": "0.1.0"
+            }
+          }
+        },
+        "jsonrpc": "2.0",
+        "id": 1
+      }
+    }
+  }
+]

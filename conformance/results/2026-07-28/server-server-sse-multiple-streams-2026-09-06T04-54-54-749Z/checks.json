@@ -1,0 +1,64 @@
+[
+  {
+    "id": "server-accepts-multiple-post-streams",
+    "name": "ServerAcceptsMultiplePostStreams",
+    "description": "Server allows multiple concurrent POST requests (each may return SSE or JSON)",
+    "status": "SUCCESS",
+    "timestamp": "2026-09-06T04:54:54.756Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "numStreamsAttempted": 3,
+      "numStreamsAccepted": 3,
+      "numSseStreams": 0,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "contentTypes": [
+        "application/json",
+        "application/json",
+        "application/json"
+      ]
+    }
+  },
+  {
+    "id": "server-sse-streams-functional",
+    "name": "ServerSSEStreamsFunctional",
+    "description": "Server returned JSON responses (SSE streams optional)",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:54.756Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "numSseStreams": 0,
+      "message": "Server returned JSON for all requests - SSE streaming is optional",
+      "results": [
+        {
+          "index": 0,
+          "type": "json",
+          "skipped": true
+        },
+        {
+          "index": 1,
+          "type": "json",
+          "skipped": true
+        },
+        {
+          "index": 2,
+          "type": "json",
+          "skipped": true
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,125 @@
+[
+  {
+    "id": "server-sse-polling-session",
+    "name": "ServerSSEPollingSession",
+    "description": "Server provides session ID for SSE polling tests",
+    "status": "WARNING",
+    "timestamp": "2026-09-06T04:54:56.630Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "message": "Server did not provide session ID - SSE polling tests may not work correctly"
+    }
+  },
+  {
+    "id": "outgoing-request",
+    "name": "OutgoingRequest",
+    "description": "Sending POST tools/call",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:56.630Z",
+    "details": {
+      "method": "POST",
+      "url": "http://127.0.0.1:52213/mcp",
+      "headers": {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream, application/json",
+        "mcp-protocol-version": "2025-11-25"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "test_reconnection",
+          "arguments": {}
+        }
+      }
+    }
+  },
+  {
+    "id": "incoming-response",
+    "name": "IncomingResponse",
+    "description": "Received 200 response for POST",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:56.633Z",
+    "details": {
+      "statusCode": 200,
+      "headers": {
+        "cache-control": "no-cache, no-transform",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "date": "Sun, 06 Sep 2026 04:54:56 GMT",
+        "transfer-encoding": "chunked",
+        "x-accel-buffering": "no"
+      }
+    }
+  },
+  {
+    "id": "stream-closed",
+    "name": "StreamClosed",
+    "description": "POST SSE stream closed after 1 event(s)",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:56.633Z",
+    "details": {
+      "eventCount": 1,
+      "receivedToolResponse": false
+    }
+  },
+  {
+    "id": "server-sse-priming-event",
+    "name": "ServerSendsPrimingEvent",
+    "description": "Server SHOULD send priming event with id and empty data on POST SSE streams",
+    "status": "WARNING",
+    "timestamp": "2026-09-06T04:54:56.633Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "hasPrimingEvent": false,
+      "primingEventIsFirst": false,
+      "hasEventId": false,
+      "eventCount": 1
+    },
+    "errorMessage": "Server did not send priming event with id and empty data on POST SSE stream. This is recommended for resumability."
+  },
+  {
+    "id": "server-sse-retry-field",
+    "name": "ServerSendsRetryField",
+    "description": "Server SHOULD send retry field to control client reconnection timing",
+    "status": "WARNING",
+    "timestamp": "2026-09-06T04:54:56.633Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "hasRetryField": false
+    },
+    "errorMessage": "Server did not send retry field. This is recommended for controlling client reconnection timing."
+  },
+  {
+    "id": "server-sse-disconnect-resume",
+    "name": "ServerDisconnectResume",
+    "description": "Server closes SSE stream mid-call and resumes after reconnection",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:56.633Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "message": "Could not test disconnect/resume - no last event ID or session ID available"
+    }
+  }
+]

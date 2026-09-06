@@ -81,6 +81,7 @@ const CATEGORIES = new Set([
   "capability-not-declared",
   "suite-false-negative",
   "extension-not-applicable",
+  "legacy-stateless-by-design",
 ]);
 
 /**
@@ -375,6 +376,8 @@ function untestedSection(runs) {
       "The check fails for a reason other than the requirement it states. The bridge satisfies the requirement, verified by hand.",
     "extension-not-applicable":
       "An extension scenario, never scored, and built on the same hard-coded fixture tools.",
+    "legacy-stateless-by-design":
+      "The 2025-11-25 route is served statelessly by the SDK (legacy: stateless), so no Mcp-Session-Id is issued and a SHOULD-level check that needs a session reports a warning. The bridge holds no session on purpose.",
   };
 
   const lines = [];

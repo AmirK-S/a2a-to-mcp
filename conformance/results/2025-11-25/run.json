@@ -1,15 +1,15 @@
 {
   "revision": "2025-11-25",
   "exitCode": 0,
-  "startedAt": "2026-09-06T03:30:38.488Z",
-  "finishedAt": "2026-09-06T03:30:40.439Z",
+  "startedAt": "2026-09-06T04:54:55.735Z",
+  "finishedAt": "2026-09-06T04:54:57.216Z",
   "command": "npx -y @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url http://127.0.0.1:<port>/mcp --requirements 2025-11-25 -o conformance/results/2025-11-25 --expected-failures conformance/baseline.yml",
   "suiteVersion": "0.2.0-alpha.11",
   "nodeVersion": "v26.4.0",
-  "bridgeUrl": "http://127.0.0.1:49234/mcp",
+  "bridgeUrl": "http://127.0.0.1:52213/mcp",
   "baseline": "conformance/baseline.yml",
   "totals": {
-    "passed": 39,
+    "passed": 35,
     "failed": 26
   },
   "notScored": {

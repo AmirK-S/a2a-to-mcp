@@ -1,0 +1,18 @@
+[
+  {
+    "id": "server-session-lifecycle-skipped",
+    "name": "SessionLifecycleSkipped",
+    "description": "Server is stateless (no MCP-Session-Id) — lifecycle checks not applicable",
+    "status": "INFO",
+    "timestamp": "2026-09-06T04:54:56.615Z",
+    "specReferences": [
+      {
+        "id": "MCP-Session-Management",
+        "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management"
+      }
+    ],
+    "details": {
+      "message": "Server did not return an MCP-Session-Id header; session lifecycle does not apply."
+    }
+  }
+]
