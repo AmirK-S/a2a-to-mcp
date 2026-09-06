@@ -12,7 +12,15 @@
  */
 import { randomUUID } from "node:crypto";
 
-import { Role, type Message, type Part, type SendMessageResult, type Task } from "@a2a-js/sdk";
+import {
+  Role,
+  type Message,
+  type Part,
+  type SendMessageConfiguration,
+  type SendMessageResult,
+  type StreamResponse,
+  type Task,
+} from "@a2a-js/sdk";
 import { ClientFactory, JsonRpcTransportFactory, type Client } from "@a2a-js/sdk/client";
 import { A2AError, isJsonRpcError } from "@a2a-js/sdk/errors";
 
@@ -50,19 +58,57 @@ export class A2AClientPool {
     this.#cards = cards;
   }
 
-  /** Sends one text message and waits for a terminal or interrupted state. */
-  async sendMessage(alias: string, input: SendMessageInput): Promise<SendMessageResult> {
+  /**
+   * Sends one text message. Waits for a terminal or interrupted state by
+   * default; `returnImmediately` asks the agent to answer as soon as the
+   * task exists, which is what the tasks extension needs from an agent that
+   * does not stream.
+   */
+  async sendMessage(
+    alias: string,
+    input: SendMessageInput,
+    options: { returnImmediately?: boolean } = {},
+  ): Promise<SendMessageResult> {
     const client = await this.#clientFor(alias);
     return this.#call(alias, "SendMessage", () =>
       client.sendMessage({
         tenant: "",
         message: buildUserMessage(input),
-        // Left unset on purpose: the SDK fills the configuration from its own
-        // ClientConfig, which defaults to returnImmediately false.
-        configuration: undefined,
+        // Left unset unless the caller asks otherwise: the SDK fills the
+        // configuration from its own ClientConfig, which defaults to
+        // returnImmediately false.
+        configuration: immediateConfiguration(options.returnImmediately),
         metadata: undefined,
       }),
     );
+  }
+
+  /**
+   * Opens the SendStreamingMessage stream of an agent. The generator is
+   * handed back unconsumed: the caller reads the first event to answer the
+   * MCP request, then keeps pulling in the background.
+   */
+  async sendMessageStream(
+    alias: string,
+    input: SendMessageInput,
+  ): Promise<AsyncGenerator<StreamResponse, void, undefined>> {
+    const client = await this.#clientFor(alias);
+    return this.#call(alias, "SendStreamingMessage", () =>
+      Promise.resolve(
+        client.sendMessageStream({
+          tenant: "",
+          message: buildUserMessage(input),
+          configuration: undefined,
+          metadata: undefined,
+        }),
+      ),
+    );
+  }
+
+  /** True when the agent card of an alias declares streaming support. */
+  async supportsStreaming(alias: string): Promise<boolean> {
+    const resolved = await this.#cards.get(alias);
+    return resolved.card.capabilities?.streaming === true;
   }
 
   /** Reads one task back, optionally trimming its history. */
@@ -117,6 +163,24 @@ export class A2AClientPool {
 }
 
 /** Builds the single text part user message the bridge sends. */
+/**
+ * The configuration asking an agent to answer as soon as the task exists.
+ * Undefined keeps the SDK default, which waits for a terminal or interrupted
+ * state.
+ */
+function immediateConfiguration(
+  returnImmediately: boolean | undefined,
+): SendMessageConfiguration | undefined {
+  if (!returnImmediately) {
+    return undefined;
+  }
+  return {
+    acceptedOutputModes: [],
+    taskPushNotificationConfig: undefined,
+    returnImmediately: true,
+  };
+}
+
 export function buildUserMessage(input: SendMessageInput): Message {
   const part: Part = {
     content: { $case: "text", value: input.text },

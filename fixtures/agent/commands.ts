@@ -20,6 +20,7 @@ export const COMMAND_NAMES = [
   "data",
   "file",
   "image",
+  "vanish",
 ] as const;
 
 export type CommandName = (typeof COMMAND_NAMES)[number];
@@ -28,7 +29,14 @@ const KNOWN = new Set<string>(COMMAND_NAMES);
 
 const COMMAND_PATTERN = /^([A-Za-z-]+)\s*:?\s*([\s\S]*)$/;
 
-/** Reply sent for any text that does not start with a known command. */
+/**
+ * Reply sent for any text that does not start with a known command.
+ *
+ * `vanish` is deliberately absent from this list: the exact wording is
+ * pinned by `test/integration/fixture-agent.test.ts:227`, a frozen test.
+ * The command is listed on the agent card (skill `outcomes`) and in the
+ * standalone launcher instead.
+ */
 export const UNKNOWN_COMMAND_REPLY =
   "Unknown command. Try echo:, task:, ask:, slow:, reject, fail, auth, data, file, image.";
 

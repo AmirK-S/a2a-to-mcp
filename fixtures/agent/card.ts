@@ -55,9 +55,10 @@ const SKILLS: AgentSkill[] = [
     name: "Terminal outcomes",
     description:
       "Drives a Task straight to REJECTED, FAILED or AUTH_REQUIRED, each with an " +
-      "explanatory status message.",
-    tags: ["task", "errors", "auth-required"],
-    examples: ["reject", "fail", "auth"],
+      "explanatory status message. `vanish` opens a Task, moves it to WORKING and then " +
+      "forgets it, so the next GetTask raises TaskNotFoundError.",
+    tags: ["task", "errors", "auth-required", "task-not-found"],
+    examples: ["reject", "fail", "auth", "vanish"],
     inputModes: TEXT_MODES,
     outputModes: TEXT_MODES,
     securityRequirements: [],

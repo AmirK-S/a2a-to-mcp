@@ -14,8 +14,13 @@
  */
 import type { Server } from "node:http";
 
-import { AGENT_CARD_PATH } from "@a2a-js/sdk";
-import { DefaultRequestHandler, InMemoryTaskStore } from "@a2a-js/sdk/server";
+import { AGENT_CARD_PATH, type ListTasksRequest, type ListTasksResponse, type Task } from "@a2a-js/sdk";
+import {
+  DefaultRequestHandler,
+  InMemoryTaskStore,
+  type ServerCallContext,
+  type TaskStore,
+} from "@a2a-js/sdk/server";
 
 import { JSONRPC_PATH, buildAgentCard } from "./card.js";
 import { FixtureAgentExecutor } from "./executor.js";
@@ -29,6 +34,43 @@ export {
   UNKNOWN_COMMAND_REPLY,
   parseCommand,
 } from "./commands.js";
+
+/**
+ * An `InMemoryTaskStore` that can be told to forget a task for good.
+ *
+ * `TaskStore` has no delete operation, so a forgotten id is answered as
+ * absent instead: `load` returns `undefined`, `save` drops the write and
+ * `list` hides the task. That is what the `vanish` command needs to make
+ * the agent lose a task it has already announced.
+ */
+class VanishingTaskStore implements TaskStore {
+  readonly #inner = new InMemoryTaskStore();
+  readonly #vanished = new Set<string>();
+
+  /** Makes a task unreachable from now on. */
+  vanish(taskId: string): void {
+    this.#vanished.add(taskId);
+  }
+
+  async load(taskId: string, context: ServerCallContext): Promise<Task | undefined> {
+    if (this.#vanished.has(taskId)) {
+      return undefined;
+    }
+    return this.#inner.load(taskId, context);
+  }
+
+  async save(task: Task, context: ServerCallContext): Promise<void> {
+    if (this.#vanished.has(task.id)) {
+      return;
+    }
+    await this.#inner.save(task, context);
+  }
+
+  async list(params: ListTasksRequest, context: ServerCallContext): Promise<ListTasksResponse> {
+    const listed = await this.#inner.list(params, context);
+    return { ...listed, tasks: listed.tasks.filter((task) => !this.#vanished.has(task.id)) };
+  }
+}
 
 export interface FixtureAgentOptions {
   /** TCP port to bind. `0`, the default, picks a free port. */
@@ -62,10 +104,11 @@ export async function startFixtureAgent(
   // URLs are rewritten after `listen`. `DefaultRequestHandler` holds the
   // card by reference and reads it on every request.
   const agentCard = buildAgentCard("http://127.0.0.1:0");
+  const taskStore = new VanishingTaskStore();
   const requestHandler = new DefaultRequestHandler(
     agentCard,
-    new InMemoryTaskStore(),
-    new FixtureAgentExecutor(),
+    taskStore,
+    new FixtureAgentExecutor({ vanishTask: (taskId) => taskStore.vanish(taskId) }),
   );
 
   const server = createFixtureHttpServer({

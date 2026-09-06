@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   console.log(`[fixture-agent] listening on ${agent.url}`);
   console.log(`[fixture-agent] agent card: ${agent.cardUrl}`);
   console.log(`[fixture-agent] JSON-RPC:   ${agent.url}/a2a`);
-  console.log("[fixture-agent] commands: echo:, task:, ask:, slow:, reject, fail, auth, data, file, image");
+  console.log("[fixture-agent] commands: echo:, task:, ask:, slow:, reject, fail, auth, data, file, image, vanish");
   console.log("[fixture-agent] press Ctrl+C to stop");
 
   let stopping = false;

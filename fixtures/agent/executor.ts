@@ -90,12 +90,27 @@ function delay(millis: number): Promise<void> {
   });
 }
 
+export interface FixtureAgentExecutorOptions {
+  /**
+   * Makes a task unreachable in the task store, so the next `GetTask`
+   * raises `TaskNotFoundError`. Used by the `vanish` command; without it
+   * `vanish` behaves like a task that stops emitting.
+   */
+  vanishTask?: (taskId: string) => void;
+}
+
 export class FixtureAgentExecutor implements AgentExecutor {
   /** Task ids for which `CancelTask` has been received. */
   private readonly canceledTasks = new Set<string>();
 
   /** Question asked by `ask:`, keyed by the task waiting for the answer. */
   private readonly pendingQuestions = new Map<string, string>();
+
+  private readonly vanishTask: (taskId: string) => void;
+
+  constructor(options: FixtureAgentExecutorOptions = {}) {
+    this.vanishTask = options.vanishTask ?? (() => undefined);
+  }
 
   public cancelTask = async (
     taskId: string,
@@ -228,6 +243,9 @@ export class FixtureAgentExecutor implements AgentExecutor {
           ),
         );
         return;
+      case "vanish":
+        this.runVanishCommand(eventBus, taskId, contextId);
+        return;
       case "image":
         this.completeWithPart(
           eventBus,
@@ -271,6 +289,29 @@ export class FixtureAgentExecutor implements AgentExecutor {
     eventBus.publish(
       this.statusEvent(taskId, contextId, TaskState.TASK_STATE_COMPLETED),
     );
+  }
+
+  /**
+   * Opens a task, moves it to WORKING, then makes it unreachable and stops
+   * emitting without ever reaching a terminal state. The stream closes when
+   * `execute` returns, and the next `GetTask` raises `TaskNotFoundError`
+   * (`-32001`): the one case where a bridge can no longer serve a task it
+   * has already handed out.
+   */
+  private runVanishCommand(
+    eventBus: ExecutionEventBus,
+    taskId: string,
+    contextId: string,
+  ): void {
+    eventBus.publish(
+      this.statusEvent(
+        taskId,
+        contextId,
+        TaskState.TASK_STATE_WORKING,
+        WORKING_MESSAGE,
+      ),
+    );
+    this.vanishTask(taskId);
   }
 
   /** Holds the task in WORKING, checking for cancellation at every tick. */

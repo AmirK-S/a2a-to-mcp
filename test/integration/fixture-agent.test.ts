@@ -377,6 +377,49 @@ describe("terminal and interrupted outcomes", () => {
       "Authorization needed: complete it out of band at https://example.invalid/authorize",
     );
   });
+
+  it("vanish opens a task, stops without a terminal state, and loses it: GetTask raises -32001", async () => {
+    // sendMessage would block, since the task never reaches a terminal or
+    // interrupted state; the stream closes on its own when the agent stops.
+    const stream = client.sendMessageStream(sendRequest("vanish"));
+    const states: TaskState[] = [];
+    let taskId = "";
+
+    for await (const event of stream) {
+      const payload = event.payload;
+      if (payload?.$case === "task") {
+        taskId = payload.value.id;
+        if (payload.value.status?.state !== undefined) {
+          states.push(payload.value.status.state);
+        }
+      } else if (payload?.$case === "statusUpdate") {
+        taskId = payload.value.taskId;
+        const state = payload.value.status?.state;
+        if (state !== undefined) {
+          states.push(state);
+        }
+      }
+    }
+
+    expect(taskId).not.toBe("");
+    expect(states).toContain(TaskState.TASK_STATE_WORKING);
+    for (const terminal of [
+      TaskState.TASK_STATE_COMPLETED,
+      TaskState.TASK_STATE_FAILED,
+      TaskState.TASK_STATE_CANCELED,
+      TaskState.TASK_STATE_REJECTED,
+    ]) {
+      expect(states).not.toContain(terminal);
+    }
+
+    try {
+      await client.getTask({ tenant: "", id: taskId, historyLength: undefined });
+      throw new Error("expected getTask to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TaskNotFoundError);
+      expect((error as { envelopeCode?: number }).envelopeCode).toBe(-32001);
+    }
+  });
 });
 
 describe("non-text parts", () => {
