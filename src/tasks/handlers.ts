@@ -15,6 +15,7 @@ import {
   ProtocolError,
   ProtocolErrorCode,
   SERVER_INFO_META_KEY,
+  inputResponse,
 } from "@modelcontextprotocol/server";
 import { TaskState, taskStateToJSON, type Message, type StreamResponse, type Task } from "@a2a-js/sdk";
 
@@ -180,7 +181,7 @@ export class TasksService {
       case "tasks/get":
         return this.#get(record);
       case "tasks/update":
-        return this.#update(record);
+        return this.#update(record, params);
       case "tasks/cancel":
         return this.#cancel(record);
       default:
@@ -239,13 +240,88 @@ export class TasksService {
   }
 
   /**
-   * tasks/update: the empty acknowledgement the extension mandates. The
-   * bridge has no outstanding input request yet, and the extension says a
-   * server SHOULD ignore responses whose key is not outstanding.
+   * tasks/update: consumes the response to the one input request the bridge
+   * ever issues, then acknowledges.
+   *
+   * The acknowledgement is always the empty complete result the extension
+   * mandates: a response whose key is not outstanding, or that arrives on a
+   * task which is not waiting for anything, is ignored rather than refused,
+   * because the extension says a server SHOULD ignore exactly that.
    */
-  async #update(record: TaskRecord): Promise<Record<string, unknown>> {
+  async #update(record: TaskRecord, params: unknown): Promise<Record<string, unknown>> {
+    const view = inputResponse(readInputResponses(params), ANSWER_KEY);
+    if (view.kind === "elicit" && this.#isWaiting(record)) {
+      if (view.action === "accept") {
+        const answer = readAnswer(view.content);
+        if (answer !== undefined) {
+          await this.#answer(record, answer);
+        }
+      } else {
+        // decline and cancel both say the client will not answer, so the A2A
+        // task is cancelled rather than left waiting until its handle expires.
+        await this.#cancelUpstream(record);
+      }
+    }
     this.#handles.tasks.markUpdated(record.handle);
-    return Promise.resolve({ resultType: "complete" });
+    return { resultType: "complete" };
+  }
+
+  /** True while the task is parked in A2A INPUT_REQUIRED and reachable. */
+  #isWaiting(record: TaskRecord): boolean {
+    return (
+      record.bridgeError === undefined &&
+      !record.terminal &&
+      stateOf(record.snapshot) === TaskState.TASK_STATE_INPUT_REQUIRED
+    );
+  }
+
+  /**
+   * Sends the answer back to the agent on the same A2A task and leaves the
+   * record running.
+   *
+   * The record is moved to working before the answer is even on the wire, so
+   * that a tasks/get racing the acknowledgement can never show the question
+   * a second time: the client has answered it and the key is gone.
+   */
+  async #answer(record: TaskRecord, answer: string): Promise<void> {
+    const input: SendMessageInput = {
+      text: answer,
+      contextId: record.contextId,
+      taskId: record.a2aTaskId,
+    };
+    this.#markWorking(record);
+    if (!(await this.#agents.supportsStreaming(record.alias))) {
+      await this.#upstream(record, () =>
+        this.#agents.sendMessage(record.alias, input, { returnImmediately: true }),
+      );
+      await this.#refresh(record);
+      return;
+    }
+    const stream = await this.#upstream(record, () =>
+      this.#agents.sendMessageStream(record.alias, input),
+    );
+    record.streaming = true;
+    // Not awaited on purpose: the client is acknowledged now, and the stream
+    // keeps writing into the record until it closes.
+    void this.#consume(record, stream[Symbol.asyncIterator]());
+  }
+
+  /**
+   * Moves a snapshot from INPUT_REQUIRED to working, dropping the question:
+   * keeping it would make tasks/get repeat the answered question as the
+   * status message of a task that is running again.
+   */
+  #markWorking(record: TaskRecord): void {
+    const status = record.snapshot.status;
+    record.snapshot = {
+      ...record.snapshot,
+      status: {
+        state: TaskState.TASK_STATE_WORKING,
+        message: undefined,
+        timestamp: status?.timestamp,
+      },
+    };
+    record.lastUpdatedAt = this.#handles.tasks.stamp();
   }
 
   /** tasks/cancel: cooperative upstream cancellation, then an empty ack. */
@@ -256,12 +332,17 @@ export class TasksService {
       this.#handles.tasks.markUpdated(record.handle);
       return { resultType: "complete" };
     }
+    await this.#cancelUpstream(record);
+    this.#handles.tasks.markUpdated(record.handle);
+    return { resultType: "complete" };
+  }
+
+  /** Asks the agent to cancel the task and takes the answer into the record. */
+  async #cancelUpstream(record: TaskRecord): Promise<void> {
     const canceled = await this.#upstream(record, () =>
       this.#agents.cancelTask(record.alias, record.a2aTaskId),
     );
     this.#adopt(record, canceled);
-    this.#handles.tasks.markUpdated(record.handle);
-    return { resultType: "complete" };
   }
 
   /** Files an A2A task under a tk_ handle, minting its cx_ handle too. */
@@ -423,27 +504,65 @@ export function statusMessageOf(task: Task): string {
 }
 
 /**
- * The one form-mode elicitation an A2A INPUT_REQUIRED becomes. A2A carries
- * the question as free text with no schema, so the schema is a single
- * required string and the agent wording travels as the message.
+ * Key of the single input request the bridge ever issues. One A2A question
+ * becomes one elicitation, so one key is enough, and both the extension route
+ * and the synchronous multi round trip route use this one.
+ */
+export const ANSWER_KEY = "answer";
+
+/** Wording of the one field the synthesized form asks for. */
+export const ANSWER_DESCRIPTION = "Your answer to the agent";
+
+/**
+ * The elicitation form an A2A question becomes. A2A carries the question as
+ * free text with no schema, so the schema is a single required string and the
+ * agent wording travels as the message.
+ */
+export function answerSchema(): Record<string, unknown> {
+  return {
+    type: "object",
+    properties: { [ANSWER_KEY]: { type: "string", description: ANSWER_DESCRIPTION } },
+    required: [ANSWER_KEY],
+  };
+}
+
+/**
+ * The one form-mode elicitation an A2A INPUT_REQUIRED becomes, in the shape
+ * tasks/get reports it: the bare embedded request, since the extension has no
+ * builder of its own.
  */
 export function inputRequestsFor(question: string): Record<string, unknown> {
   return {
-    answer: {
+    [ANSWER_KEY]: {
       method: "elicitation/create",
       params: {
         mode: "form",
         message: question,
-        requestedSchema: {
-          type: "object",
-          properties: {
-            answer: { type: "string", description: "Your answer to the agent" },
-          },
-          required: ["answer"],
-        },
+        requestedSchema: answerSchema(),
       },
     },
   };
+}
+
+/** Reads params.inputResponses, tolerating anything that is not a map. */
+export function readInputResponses(params: unknown): Record<string, unknown> | undefined {
+  if (typeof params !== "object" || params === null || Array.isArray(params)) {
+    return undefined;
+  }
+  const responses = (params as Record<string, unknown>)["inputResponses"];
+  return typeof responses === "object" && responses !== null && !Array.isArray(responses)
+    ? (responses as Record<string, unknown>)
+    : undefined;
+}
+
+/**
+ * The answer text of an accepted elicitation. The content comes from the
+ * client and is not validated by the SDK, so a missing or ill-typed field is
+ * read as no answer at all rather than sent on to the agent.
+ */
+export function readAnswer(content: Record<string, unknown> | undefined): string | undefined {
+  const answer = content?.[ANSWER_KEY];
+  return typeof answer === "string" && answer !== "" ? answer : undefined;
 }
 
 /** Reads params.taskId, refusing anything else with -32602. */

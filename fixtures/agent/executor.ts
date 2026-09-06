@@ -103,8 +103,15 @@ export class FixtureAgentExecutor implements AgentExecutor {
   /** Task ids for which `CancelTask` has been received. */
   private readonly canceledTasks = new Set<string>();
 
-  /** Question asked by `ask:`, keyed by the task waiting for the answer. */
-  private readonly pendingQuestions = new Map<string, string>();
+  /**
+   * Question asked by `ask:`, keyed by the task waiting for the answer. The
+   * context is kept alongside it so a cancellation arriving while the task is
+   * parked can publish a terminal event without a running turn.
+   */
+  private readonly pendingQuestions = new Map<
+    string,
+    { question: string; contextId: string }
+  >();
 
   private readonly vanishTask: (taskId: string) => void;
 
@@ -114,9 +121,25 @@ export class FixtureAgentExecutor implements AgentExecutor {
 
   public cancelTask = async (
     taskId: string,
-    _eventBus: ExecutionEventBus,
+    eventBus: ExecutionEventBus,
   ): Promise<void> => {
     this.canceledTasks.add(taskId);
+    // A task parked in `INPUT_REQUIRED` has no running turn to notice the
+    // cancellation, and `DefaultRequestHandler` waits on the event bus for a
+    // terminal event before it answers `CancelTask`. The parked turn is over,
+    // so the terminal event is published here instead.
+    const pending = this.pendingQuestions.get(taskId);
+    if (pending !== undefined) {
+      this.pendingQuestions.delete(taskId);
+      this.canceledTasks.delete(taskId);
+      eventBus.publish(
+        this.statusEvent(
+          taskId,
+          pending.contextId,
+          TaskState.TASK_STATE_CANCELED,
+        ),
+      );
+    }
   };
 
   async execute(
@@ -131,13 +154,13 @@ export class FixtureAgentExecutor implements AgentExecutor {
     // A follow-up turn answering a question left by `ask:` is matched on
     // the taskId, so the whole text is taken as the answer rather than
     // being parsed as a command.
-    const question = this.pendingQuestions.get(taskId);
-    if (requestContext.task && question !== undefined) {
+    const pending = this.pendingQuestions.get(taskId);
+    if (requestContext.task && pending !== undefined) {
       this.pendingQuestions.delete(taskId);
       eventBus.publish(AgentEvent.task(requestContext.task));
       eventBus.publish(
         this.artifactEvent(taskId, contextId, "result", [
-          textPart(`${question} = ${text.trim()}`),
+          textPart(`${pending.question} = ${text.trim()}`),
         ]),
       );
       eventBus.publish(
@@ -173,7 +196,7 @@ export class FixtureAgentExecutor implements AgentExecutor {
         this.runTaskCommand(eventBus, taskId, contextId, argument);
         return;
       case "ask":
-        this.pendingQuestions.set(taskId, argument);
+        this.pendingQuestions.set(taskId, { question: argument, contextId });
         eventBus.publish(
           this.statusEvent(
             taskId,
