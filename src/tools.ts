@@ -145,8 +145,18 @@ export function registerBridgeTools(mcp: McpServer, deps: ToolDeps): void {
 
 function buildTools(deps: ToolDeps): BridgeTool[] {
   const aliases = deps.cards.aliases;
-  const agentEnum = z.enum(aliases as [string, ...string[]]).describe(agentDescription(aliases));
-  const agentString = z.string().min(1).describe(agentDescription(aliases));
+  const only = aliases.length === 1 ? aliases[0] : undefined;
+  // With a single configured agent the caller does not have to repeat its
+  // alias: agent becomes optional and defaults to that alias. With several
+  // agents it stays required, so that a call never lands on the wrong one.
+  const agentEnum =
+    only === undefined
+      ? z.enum(aliases as [string, ...string[]]).describe(agentDescription(aliases))
+      : z.enum([only]).default(only).describe(agentDescription(aliases));
+  const agentString =
+    only === undefined
+      ? z.string().min(1).describe(agentDescription(aliases))
+      : z.string().min(1).default(only).describe(agentDescription(aliases));
   const retention = deps.handles.describeRetention();
 
   return [
@@ -463,6 +473,9 @@ export function summarize(resolved: ResolvedAgent): string {
 }
 
 function agentDescription(aliases: readonly string[]): string {
+  if (aliases.length === 1) {
+    return `Alias of the A2A agent to talk to. Only ${aliases[0]} is configured, so this argument may be omitted.`;
+  }
   return `Alias of the A2A agent to talk to. Configured aliases: ${aliases.join(", ")}.`;
 }
 
