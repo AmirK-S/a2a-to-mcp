@@ -1,0 +1,9 @@
+# Conformance
+
+Replay: `npm run conformance`. It builds the bridge, starts the fixture A2A agent and the bridge on free ports, waits for `server/discover`, then runs `@modelcontextprotocol/conformance@0.2.0-alpha.11` twice, `--requirements 2026-07-28` and `--requirements 2025-11-25`, with `--expected-failures conformance/baseline.yml`. Add `--skip-build` to reuse the current `dist/`. `npm run conformance:report` rewrites the report from results already on disk.
+
+What the official score measures for a bridge, and what it does not: the `tasks-*` scenarios call hard-coded tool names a bridge cannot expose, and so do most `tools-call-*` and `input-required-result-*` scenarios, so their failures say nothing about the wire. What the suite does settle is in the report: the schema of every message emitted, the SEP-2575 stateless wire, the SEP-2243 header rejections and Host and Origin validation. The tasks extension is proved instead by the integration tests of this repository, scenario by scenario (D07).
+
+`conformance/baseline.yml` lists the expected failures, one line each, with the reason and one of four categories: `fixture-tools-absent`, `capability-not-declared`, `suite-false-negative`, `extension-not-applicable`. A failure caused by a defect of the bridge never belongs there; it is fixed instead. A baselined failure is still a failure against a requirement set.
+
+Read `conformance/REPORT.md` for the aggregate: command and versions, totals, what was proved, what could not be tested, and any failure the baseline does not cover. The raw artefacts are `conformance/results/<revision>/server-<scenario>-<timestamp>/checks.json`, versioned; the console transcript `run.log` beside them is not.

@@ -1,0 +1,116 @@
+# Expected failures of a2a-to-mcp against the official MCP conformance suite.
+#
+# Format: the one the suite reads with `--expected-failures`, a `server` (and
+# optionally `client`) list whose entries are `<scenario>` for a whole scenario
+# or `<scenario>:<check-id>` for a single check, with no space after the colon.
+# Almost every entry below names a single check on purpose: baselining a whole
+# scenario to excuse one check stops enforcing all the others, and
+# `server-stateless` alone carries thirty.
+#
+# Every line ends with `# <category> | <reason>`. The suite ignores the comment;
+# `scripts/conformance/summarize.mjs` reads it back so `REPORT.md` can justify
+# each line instead of listing bare names. Categories:
+#
+#   fixture-tools-absent     the scenario calls a tool name written into the
+#                            suite, which a bridge cannot expose
+#   capability-not-declared  the bridge declares no prompts, resources,
+#                            completions or logging, and answers -32601
+#   suite-false-negative     the check fails for a reason other than the
+#                            requirement it states
+#   extension-not-applicable an extension scenario, never scored, built on the
+#                            same hard-coded fixture tools
+#
+# A baselined failure is still a failure against a requirement set. Nothing
+# whose cause is a defect of the bridge belongs here: `dns-rebinding-protection`
+# sat in this file's first draft and was removed once the bridge started
+# refusing foreign Host and Origin headers, which is the only way an entry is
+# ever meant to leave.
+#
+# One file covers both runs. The 2026-07-28 and 2025-11-25 requirement sets do
+# not run the same scenarios, and an entry a run never meets is ignored.
+
+server:
+  # --- Fixture tools the suite hard-codes -----------------------------------
+  # The suite drives a server through named tools of its reference
+  # everything-server. The bridge exposes a2a_discover, a2a_send_message,
+  # a2a_get_task and a2a_cancel_task, one per A2A verb, and cannot invent the
+  # others without lying about what it fronts.
+  - tools-call-simple-text:tools-call-simple-text # fixture-tools-absent | Calls test_simple_text, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-image:tools-call-image # fixture-tools-absent | Calls test_image_content, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-audio:tools-call-audio # fixture-tools-absent | Calls test_audio_content, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-embedded-resource:tools-call-embedded-resource # fixture-tools-absent | Calls test_embedded_resource, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-mixed-content:tools-call-mixed-content # fixture-tools-absent | Calls test_multiple_content_types, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-error:tools-call-error # fixture-tools-absent | Calls test_error_handling, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-with-progress:tools-call-with-progress # fixture-tools-absent | Calls test_tool_with_progress, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-sampling:tools-call-sampling # fixture-tools-absent | Calls test_sampling on the legacy wire, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-elicitation:tools-call-elicitation # fixture-tools-absent | Calls test_elicitation on the legacy wire, a fixture tool of the suite that the bridge does not expose.
+  - tools-call-with-logging:tools-call-with-logging # fixture-tools-absent | Calls test_logging_tool on the legacy wire, a fixture tool of the suite that the bridge does not expose.
+  - elicitation-sep1034-defaults:elicitation-sep1034-general # fixture-tools-absent | Needs a fixture tool that elicits with SEP-1034 defaults, which the bridge does not expose.
+  - elicitation-sep1330-enums:elicitation-sep1330-general # fixture-tools-absent | Needs a fixture tool that elicits with SEP-1330 enums, which the bridge does not expose.
+
+  # --- SEP-2322, multi-round tool results -----------------------------------
+  # Fourteen scored scenarios, twelve of which drive a test_input_required_result_*
+  # fixture tool. The two the bridge passes outright, unsupported-methods and
+  # validate-input, are the two that need no fixture at all.
+  - input-required-result-basic-elicitation:sep-2322-elicitation-incomplete # fixture-tools-absent | Calls test_input_required_result_elicitation, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-basic-sampling:sep-2322-sampling-incomplete # fixture-tools-absent | Calls test_input_required_result_sampling, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-basic-list-roots:sep-2322-list-roots-incomplete # fixture-tools-absent | Calls test_input_required_result_list_roots, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-request-state:sep-2322-request-state-incomplete # fixture-tools-absent | Calls test_input_required_result_request_state, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-multiple-input-requests:sep-2322-multiple-inputs-incomplete # fixture-tools-absent | Calls test_input_required_result_multiple_inputs, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-multi-round:sep-2322-multi-round-r1 # fixture-tools-absent | Expects an InputRequiredResult from a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-result-type:sep-2322-result-type-included # fixture-tools-absent | Reads resultType off the answer of a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-tampered-state:sep-2322-reject-tampered-state # fixture-tools-absent | Its prerequisite is an InputRequiredResult from a fixture tool the bridge does not expose, so the tamper is never attempted.
+  - input-required-result-capability-check:sep-2322-respect-client-capabilities # fixture-tools-absent | Calls test_input_required_result_capabilities, a fixture tool of the suite that the bridge does not expose.
+  - input-required-result-ignore-extra-params:sep-2322-ignore-unexpected-params # fixture-tools-absent | Warns because the extra-params probe targets a fixture tool the bridge does not expose, so the SHOULD is never exercised.
+  - input-required-result-missing-input-response:sep-2322-missing-response-rerequests # fixture-tools-absent | Warns because the re-request probe targets a fixture tool the bridge does not expose, so the SHOULD is never exercised.
+  - input-required-result-non-tool-request:sep-2322-non-tool-incomplete # capability-not-declared | Probes prompts/get, which the bridge does not declare and answers -32601.
+
+  # --- Diagnostic fixture tools inside server-stateless ----------------------
+  # Twenty-four of the thirty checks of this scenario pass. The five below are
+  # named one by one so the other twenty-four stay enforced.
+  - server-stateless:sep-2575-server-rejects-undeclared-capability # fixture-tools-absent | Reported untestable: needs the diagnostic tool test_missing_capability, which the bridge does not expose.
+  - server-stateless:sep-2575-missing-capability-http-400 # fixture-tools-absent | Reported untestable: the -32021 HTTP status needs test_missing_capability, which the bridge does not expose.
+  - server-stateless:sep-2575-http-server-no-independent-requests-on-stream # fixture-tools-absent | Reported untestable: needs test_streaming_elicitation to open a response stream, which the bridge does not expose.
+  - server-stateless:sep-2575-server-no-log-without-loglevel # fixture-tools-absent | Reported untestable: needs test_logging_tool to emit a log, which the bridge does not expose.
+  - server-stateless:sep-2575-server-sends-tools-list-changed-on-subscription # fixture-tools-absent | Mutating the tool list goes through test_trigger_tool_change, which the bridge does not expose, so no mutation happened and the missing notification proves nothing.
+
+  # --- Capabilities the bridge deliberately does not declare -----------------
+  # An A2A agent has skills, not prompts or resources, so server/discover
+  # announces tools and the tasks extension and nothing else. Answering -32601
+  # is the correct stateless behaviour, and sep-2575-discover-capabilities-match-handlers
+  # passes, which proves the declaration and the handlers agree.
+  - prompts-list:prompts-list # capability-not-declared | The bridge declares no prompts capability and answers -32601 to prompts/list.
+  - prompts-get-simple:prompts-get-simple # capability-not-declared | The bridge declares no prompts capability and answers -32601 to prompts/get.
+  - prompts-get-with-args:prompts-get-with-args # capability-not-declared | The bridge declares no prompts capability and answers -32601 to prompts/get.
+  - prompts-get-embedded-resource:prompts-get-embedded-resource # capability-not-declared | The bridge declares no prompts capability and answers -32601 to prompts/get.
+  - prompts-get-with-image:prompts-get-with-image # capability-not-declared | The bridge declares no prompts capability and answers -32601 to prompts/get.
+  - resources-list:resources-list # capability-not-declared | The bridge declares no resources capability and answers -32601 to resources/list.
+  - resources-read-text:resources-read-text # capability-not-declared | The bridge declares no resources capability and answers -32601 to resources/read.
+  - resources-read-binary:resources-read-binary # capability-not-declared | The bridge declares no resources capability and answers -32601 to resources/read.
+  - resources-templates-read:resources-templates-read # capability-not-declared | The bridge declares no resources capability and answers -32601 to resources/templates/list.
+  - resources-subscribe:resources-subscribe # capability-not-declared | The bridge declares no resources capability, so the legacy resources/subscribe is -32601.
+  - resources-unsubscribe:resources-unsubscribe # capability-not-declared | The bridge declares no resources capability, so the legacy resources/unsubscribe is -32601.
+  - completion-complete:completion-complete # capability-not-declared | The bridge declares no completions capability and answers -32601 to completion/complete.
+  - logging-set-level:logging-set-level # capability-not-declared | The bridge declares no logging capability, so the legacy logging/setLevel is -32601.
+  - sep-2164-resource-not-found:sep-2164-error-code # capability-not-declared | The undeclared resources capability makes resources/read -32601, so the scenario never reaches the -32602 it wants to grade.
+  - sep-2164-resource-not-found:sep-2164-data-uri # capability-not-declared | Same -32601: with no resources handler there is no error data.uri to carry the requested resource.
+  - caching:sep-2549-prompts-list-caching-hints # capability-not-declared | Reads caching hints off prompts/list, which is -32601 for want of a declared prompts capability.
+  - caching:sep-2549-resources-list-caching-hints # capability-not-declared | Reads caching hints off resources/list, which is -32601 for want of a declared resources capability.
+  - caching:sep-2549-resources-templates-list-caching-hints # capability-not-declared | Reads caching hints off resources/templates/list, which is -32601 for want of a declared resources capability.
+
+  # --- Never scored, listed for the record -----------------------------------
+  # Under a requirement set the suite judges scored scenarios only, so nothing
+  # below can change an exit code. They are written down because the report has
+  # to say why they are out of reach, not because they excuse anything.
+  - tasks-lifecycle # extension-not-applicable | Extension scenario driving greet, slow_compute, failing_job and protocol_error_job, four fixture tools of the suite that the bridge does not expose (D07).
+  - tasks-capability-negotiation # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
+  - tasks-wire-fields # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
+  - tasks-request-state-removal # extension-not-applicable | Extension scenario driving slow_compute, a fixture tool of the suite that the bridge does not expose (D07).
+  - tasks-mrtr-input # extension-not-applicable | Extension scenario driving confirm_delete and multi_input, fixture tools of the suite that the bridge does not expose (D07).
+  - tasks-request-headers # extension-not-applicable | Extension scenario driving greet and slow_compute, fixture tools of the suite that the bridge does not expose (D07).
+  - tasks-dispatch-and-envelope # extension-not-applicable | Extension scenario driving greet, slow_compute and failing_job, fixture tools of the suite that the bridge does not expose (D07).
+  - tasks-required-task-error # extension-not-applicable | Extension scenario whose -32021 grading is reached through failing_job, a fixture tool of the suite that the bridge does not expose (D07).
+  - tasks-mrtr-composition # extension-not-applicable | Extension scenario driving test_tool_with_task, a fixture tool of the suite that the bridge does not expose (D07).
+  - json-schema-2020-12:json-schema-2020-12-tool-found # fixture-tools-absent | Looks for json_schema_2020_12_tool, a fixture tool of the suite that the bridge does not expose.
+  - http-custom-header-server-validation # fixture-tools-absent | All five checks report untestable: the suite needs a tool carrying x-mcp-header annotations, which the bridge does not expose.
+  - http-header-validation:sep-2243-server-accepts-whitespace-header-value # suite-false-negative | The bridge does trim the whitespace and resolves the tool; the check fails on a missing argument because the scenario calls the first listed tool with no arguments, and the first tool of the bridge requires one.

@@ -1,0 +1,73 @@
+[
+  {
+    "id": "server-accepts-multiple-post-streams",
+    "name": "ServerAcceptsMultiplePostStreams",
+    "description": "Server allows multiple concurrent POST requests (each may return SSE or JSON)",
+    "status": "SUCCESS",
+    "timestamp": "2026-09-06T03:30:39.409Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "numStreamsAttempted": 3,
+      "numStreamsAccepted": 3,
+      "numSseStreams": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "contentTypes": [
+        "text/event-stream",
+        "text/event-stream",
+        "text/event-stream"
+      ]
+    }
+  },
+  {
+    "id": "server-sse-streams-functional",
+    "name": "ServerSSEStreamsFunctional",
+    "description": "Multiple POST SSE streams should be functional",
+    "status": "SUCCESS",
+    "timestamp": "2026-09-06T03:30:39.410Z",
+    "specReferences": [
+      {
+        "id": "SEP-1699",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1699"
+      }
+    ],
+    "details": {
+      "numSseStreams": 3,
+      "functionalSseStreams": 3,
+      "results": [
+        {
+          "index": 0,
+          "type": "sse",
+          "event": {
+            "event": "message",
+            "data": "{\"result\":{\"tools\":[{\"name\":\"a2a_discover\",\"title\":\"Discover an A2A agent\",\"description\":\"Fetches and returns the agent card of one configured A2A agent: its name, description, transport interfaces, capabilities and skills. Call it before the other tools to learn what the agent can be asked for. The card is served from a short lived cache, so repeated calls do not hit the agent.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]}},\"required\":[\"agent\"]}},{\"name\":\"a2a_send_message\",\"title\":\"Send a message to an A2A agent\",\"description\":\"Sends one text message to an A2A agent and returns its answer, which is either a direct message or a task. The reply carries a context handle, and a task handle when the agent opened a task. Pass contextHandle back to continue the same conversation, and taskHandle back to answer a task the agent left waiting for input. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"text\":{\"description\":\"The message text to send to the agent.\",\"type\":\"string\",\"minLength\":1},\"contextHandle\":{\"description\":\"Context handle returned by an earlier call, to continue that conversation.\",\"type\":\"string\"},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call, to answer a task awaiting input.\",\"type\":\"string\"}},\"required\":[\"agent\",\"text\"]}},{\"name\":\"a2a_get_task\",\"title\":\"Read an A2A task\",\"description\":\"Reads the current state of a task an A2A agent opened, by the task handle an earlier call returned. Use historyLength to limit how many past messages come back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"},\"historyLength\":{\"description\":\"Maximum number of recent messages to include. Zero asks for none.\",\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}},\"required\":[\"agent\",\"taskHandle\"]}},{\"name\":\"a2a_cancel_task\",\"title\":\"Cancel an A2A task\",\"description\":\"Asks an A2A agent to cancel a task, by the task handle an earlier call returned. Cancellation is cooperative in A2A: the agent acknowledges the request but may still finish the work, so read the state that comes back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"}},\"required\":[\"agent\",\"taskHandle\"]}}]},\"jsonrpc\":\"2.0\",\"id\":1000}"
+          }
+        },
+        {
+          "index": 1,
+          "type": "sse",
+          "event": {
+            "event": "message",
+            "data": "{\"result\":{\"tools\":[{\"name\":\"a2a_discover\",\"title\":\"Discover an A2A agent\",\"description\":\"Fetches and returns the agent card of one configured A2A agent: its name, description, transport interfaces, capabilities and skills. Call it before the other tools to learn what the agent can be asked for. The card is served from a short lived cache, so repeated calls do not hit the agent.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]}},\"required\":[\"agent\"]}},{\"name\":\"a2a_send_message\",\"title\":\"Send a message to an A2A agent\",\"description\":\"Sends one text message to an A2A agent and returns its answer, which is either a direct message or a task. The reply carries a context handle, and a task handle when the agent opened a task. Pass contextHandle back to continue the same conversation, and taskHandle back to answer a task the agent left waiting for input. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"text\":{\"description\":\"The message text to send to the agent.\",\"type\":\"string\",\"minLength\":1},\"contextHandle\":{\"description\":\"Context handle returned by an earlier call, to continue that conversation.\",\"type\":\"string\"},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call, to answer a task awaiting input.\",\"type\":\"string\"}},\"required\":[\"agent\",\"text\"]}},{\"name\":\"a2a_get_task\",\"title\":\"Read an A2A task\",\"description\":\"Reads the current state of a task an A2A agent opened, by the task handle an earlier call returned. Use historyLength to limit how many past messages come back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"},\"historyLength\":{\"description\":\"Maximum number of recent messages to include. Zero asks for none.\",\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}},\"required\":[\"agent\",\"taskHandle\"]}},{\"name\":\"a2a_cancel_task\",\"title\":\"Cancel an A2A task\",\"description\":\"Asks an A2A agent to cancel a task, by the task handle an earlier call returned. Cancellation is cooperative in A2A: the agent acknowledges the request but may still finish the work, so read the state that comes back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"}},\"required\":[\"agent\",\"taskHandle\"]}}]},\"jsonrpc\":\"2.0\",\"id\":1001}"
+          }
+        },
+        {
+          "index": 2,
+          "type": "sse",
+          "event": {
+            "event": "message",
+            "data": "{\"result\":{\"tools\":[{\"name\":\"a2a_discover\",\"title\":\"Discover an A2A agent\",\"description\":\"Fetches and returns the agent card of one configured A2A agent: its name, description, transport interfaces, capabilities and skills. Call it before the other tools to learn what the agent can be asked for. The card is served from a short lived cache, so repeated calls do not hit the agent.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]}},\"required\":[\"agent\"]}},{\"name\":\"a2a_send_message\",\"title\":\"Send a message to an A2A agent\",\"description\":\"Sends one text message to an A2A agent and returns its answer, which is either a direct message or a task. The reply carries a context handle, and a task handle when the agent opened a task. Pass contextHandle back to continue the same conversation, and taskHandle back to answer a task the agent left waiting for input. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"text\":{\"description\":\"The message text to send to the agent.\",\"type\":\"string\",\"minLength\":1},\"contextHandle\":{\"description\":\"Context handle returned by an earlier call, to continue that conversation.\",\"type\":\"string\"},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call, to answer a task awaiting input.\",\"type\":\"string\"}},\"required\":[\"agent\",\"text\"]}},{\"name\":\"a2a_get_task\",\"title\":\"Read an A2A task\",\"description\":\"Reads the current state of a task an A2A agent opened, by the task handle an earlier call returned. Use historyLength to limit how many past messages come back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"},\"historyLength\":{\"description\":\"Maximum number of recent messages to include. Zero asks for none.\",\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}},\"required\":[\"agent\",\"taskHandle\"]}},{\"name\":\"a2a_cancel_task\",\"title\":\"Cancel an A2A task\",\"description\":\"Asks an A2A agent to cancel a task, by the task handle an earlier call returned. Cancellation is cooperative in A2A: the agent acknowledges the request but may still finish the work, so read the state that comes back. Handles live in memory for 15 minutes after their last use; an expired handle returns an explicit error.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"agent\":{\"description\":\"Alias of the A2A agent to talk to. Configured aliases: fixture.\",\"type\":\"string\",\"enum\":[\"fixture\"]},\"taskHandle\":{\"description\":\"Task handle returned by an earlier call.\",\"type\":\"string\"}},\"required\":[\"agent\",\"taskHandle\"]}}]},\"jsonrpc\":\"2.0\",\"id\":1002}"
+          }
+        }
+      ]
+    }
+  }
+]

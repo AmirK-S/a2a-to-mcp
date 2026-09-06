@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 conformance-results/**/*.log
+conformance/results/**/*.log
 .env
 .env.*
 *.pem

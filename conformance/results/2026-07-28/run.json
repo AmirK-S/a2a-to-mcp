@@ -1,0 +1,30 @@
+{
+  "revision": "2026-07-28",
+  "exitCode": 0,
+  "startedAt": "2026-09-06T03:30:32.657Z",
+  "finishedAt": "2026-09-06T03:30:38.482Z",
+  "command": "npx -y @modelcontextprotocol/conformance@0.2.0-alpha.11 server --url http://127.0.0.1:<port>/mcp --requirements 2026-07-28 -o conformance/results/2026-07-28 --expected-failures conformance/baseline.yml",
+  "suiteVersion": "0.2.0-alpha.11",
+  "nodeVersion": "v26.4.0",
+  "bridgeUrl": "http://127.0.0.1:49234/mcp",
+  "baseline": "conformance/baseline.yml",
+  "totals": {
+    "passed": 100,
+    "failed": 68
+  },
+  "notScored": {
+    "tasks-lifecycle": "extension",
+    "tasks-capability-negotiation": "extension",
+    "tasks-wire-fields": "extension",
+    "tasks-request-state-removal": "extension",
+    "tasks-mrtr-input": "extension",
+    "tasks-request-headers": "extension",
+    "tasks-dispatch-and-envelope": "extension",
+    "tasks-status-notifications": "extension",
+    "tasks-required-task-error": "extension",
+    "tasks-mrtr-composition": "extension",
+    "json-schema-2020-12": "pending",
+    "http-header-validation": "pending",
+    "http-custom-header-server-validation": "pending"
+  }
+}
